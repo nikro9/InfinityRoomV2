@@ -1,0 +1,14 @@
+# requirements.txt
+streamlit
+ccxt
+pandas
+pandas-ta
+redis
+streamlit-autorefresh
+scikit-learn
+joblib
+python-dotenv
+requests
+scipy
+groq
+websockets
