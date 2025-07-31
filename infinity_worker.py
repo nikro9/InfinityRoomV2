@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src"
 from src import config
 from src.market_data import get_historical_data, run_websocket_listener, get_live_trades_and_clear_buffer
 from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
+# Esta importación ahora funcionará correctamente
 from src.ai_model import get_technical_analysis, get_risk_analysis
 
 # --- CONEXIÓN A REDIS ---
@@ -64,7 +65,6 @@ def analyze_and_decide(df_5m):
     order_flow_metrics = calculate_order_flow_metrics(live_trades)
     print(f"📊 Flujo de Órdenes: {order_flow_metrics['trade_count']} trades, Delta={order_flow_metrics['delta']:.2f} BTC")
 
-    # --- INICIO DEL DEBATE DE IAS ---
     timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     current_state = json.loads(r.get("infinity_room:state") or '{"status": "IDLE", "reasoning": "Iniciando..."}')
     
@@ -73,7 +73,7 @@ def analyze_and_decide(df_5m):
     r.ltrim("infinity_room:chat_log", 0, 49)
 
     if proposal:
-        print("⚖️ Propuesta generada. Enviando al Gestor de Riesgos para aprobación...")
+        print("⚖️ Propuesta generada. Enviando al Gestor de Riesgos...")
         risk_decision, risk_raw_response = get_risk_analysis(proposal, order_flow_metrics)
         r.lpush("infinity_room:chat_log", risk_raw_response)
         r.ltrim("infinity_room:chat_log", 0, 49)
@@ -89,7 +89,6 @@ def analyze_and_decide(df_5m):
             new_state['status'] = 'IDLE'
             new_state['reasoning'] = f"Propuesta rechazada por Riesgos: {risk_decision.get('reasoning')}"
 
-    # --- PUBLICAR RESULTADO FINAL EN REDIS ---
     reasoning = new_state.get('reasoning', '...')
     status_update = {"status": new_state.get('status'), "reasoning": reasoning, "proposal": new_state.get('active_trade')}
     
