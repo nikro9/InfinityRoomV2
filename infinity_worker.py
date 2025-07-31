@@ -16,9 +16,7 @@ from src.market_data import get_historical_data, run_websocket_listener, get_liv
 from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
 from src.ai_model import get_technical_analysis, get_risk_analysis
 
-# ==============================================================================
-# --- INICIO DE LA CORRECCIÓN: CONEXIÓN DINÁMICA A REDIS ---
-# ==============================================================================
+# --- CONEXIÓN A REDIS ---
 redis_url = os.getenv('REDIS_URL')
 if redis_url:
     print("Conectando a Redis en la nube...")
@@ -32,9 +30,6 @@ try:
     print("✅ Conectado a Redis.")
 except redis.exceptions.ConnectionError as e:
     sys.exit(f"❌ Error de conexión con Redis: {e}")
-# ==============================================================================
-# --- FIN DE LA CORRECCIÓN ---
-# ==============================================================================
 
 # --- LÓGICA DEL WEBSOCKET Y ORDER FLOW ---
 def websocket_thread_target():
@@ -69,6 +64,7 @@ def analyze_and_decide(df_5m):
     order_flow_metrics = calculate_order_flow_metrics(live_trades)
     print(f"📊 Flujo de Órdenes: {order_flow_metrics['trade_count']} trades, Delta={order_flow_metrics['delta']:.2f} BTC")
 
+    # --- INICIO DEL DEBATE DE IAS ---
     timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     current_state = json.loads(r.get("infinity_room:state") or '{"status": "IDLE", "reasoning": "Iniciando..."}')
     
@@ -77,7 +73,7 @@ def analyze_and_decide(df_5m):
     r.ltrim("infinity_room:chat_log", 0, 49)
 
     if proposal:
-        print("⚖️ Propuesta generada. Enviando al Gestor de Riesgos...")
+        print("⚖️ Propuesta generada. Enviando al Gestor de Riesgos para aprobación...")
         risk_decision, risk_raw_response = get_risk_analysis(proposal, order_flow_metrics)
         r.lpush("infinity_room:chat_log", risk_raw_response)
         r.ltrim("infinity_room:chat_log", 0, 49)
@@ -93,6 +89,7 @@ def analyze_and_decide(df_5m):
             new_state['status'] = 'IDLE'
             new_state['reasoning'] = f"Propuesta rechazada por Riesgos: {risk_decision.get('reasoning')}"
 
+    # --- PUBLICAR RESULTADO FINAL EN REDIS ---
     reasoning = new_state.get('reasoning', '...')
     status_update = {"status": new_state.get('status'), "reasoning": reasoning, "proposal": new_state.get('active_trade')}
     

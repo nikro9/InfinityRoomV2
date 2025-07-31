@@ -55,12 +55,9 @@ def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: di
     fig.update_yaxes(range=[0, 100], row=2, col=1)
     return fig
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN DE PÁGINA Y CONEXIÓN A REDIS ---
 st.set_page_config(layout="wide", page_title="Infinity Room - Live", page_icon="♾️")
 
-# ==============================================================================
-# --- INICIO DE LA CORRECCIÓN: CONEXIÓN DINÁMICA A REDIS ---
-# ==============================================================================
 redis_url = os.getenv('REDIS_URL')
 if redis_url:
     print("Conectando a Redis en la nube...")
@@ -74,21 +71,19 @@ try:
 except redis.exceptions.ConnectionError as e:
     st.error(f"❌ Error de conexión con Redis: {e}")
     st.stop()
-# ==============================================================================
-# --- FIN DE LA CORRECCIÓN ---
-# ==============================================================================
 
 # --- INTERFAZ PRINCIPAL ---
 st.title("♾️ Infinity Room - Monitor en Vivo")
 placeholder_status = st.empty()
 placeholder_chart = st.empty()
+placeholder_details = st.empty()
 
 # --- BUCLE DE ACTUALIZACIÓN EN VIVO ---
 while True:
     status_str = r.get("infinity_room:status")
     chart_data_str = r.get("infinity_room:chart_data")
     status_data = json.loads(status_str) if status_str else None
-    chart_data = json.loads(chart_str) if chart_data_str else None
+    chart_data = json.loads(chart_data_str) if chart_data_str else None # CORREGIDO: chart_data_str
 
     with placeholder_status.container():
         reasoning_text = status_data.get('reasoning', 'Esperando al worker...') if status_data else 'Esperando al worker...'
@@ -110,5 +105,17 @@ while True:
                 st.error(f"Error al procesar los datos del gráfico: {e}")
         else:
             st.warning("Esperando datos del worker para generar el gráfico...")
+    
+    with placeholder_details.container():
+        if status_data and status_data.get('proposal'):
+            proposal = status_data['proposal']
+            st.subheader("Detalles de la Propuesta de Trade Activa")
+            
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Precio de Entrada", f"{proposal.get('entry_price', 0):.2f}")
+            col2.metric("Stop Loss (SL)", f"{proposal.get('stop_loss', 0):.2f}")
+            col3.metric("Take Profit (TP)", f"{proposal.get('take_profit', 0):.2f}")
+            
+            st.info("Se recomienda tomar un TP1 del 75% de la posicion y el 25% restante colocar en Breakeven y dejar correr para maximizar ganancias")
 
     time.sleep(config.REFRESH_INTERVAL)
