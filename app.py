@@ -13,11 +13,10 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 from src import config
 
-# --- FUNCIÓN DE GRÁFICO AVANZADO ---
+# --- FUNCIÓN DE GRÁFICO AVANZADO (Sin cambios) ---
 def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: dict = None) -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.8, 0.2])
     
-    # Indicadores base
     fig.add_trace(go.Candlestick(x=df.index, open=df['open'], high=df['high'], low=df['low'], close=df['close'], name='Precio'), row=1, col=1)
     fig.add_trace(go.Scatter(x=df.index, y=df['ema_fast'], mode='lines', name=f'EMA {config.EMA_FAST_PERIOD}', line=dict(color='white', width=1), line_shape='hv'), row=1, col=1)
     
@@ -31,20 +30,6 @@ def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: di
         fig.add_hline(y=70, line_dash="dash", line_color=subtle_grey, line_width=1, row=2, col=1)
         fig.add_hline(y=30, line_dash="dash", line_color=subtle_grey, line_width=1, row=2, col=1)
 
-    # Lógica para graficar divergencias
-    divergences = chart_data.get('divergences', []) if chart_data else []
-    if divergences:
-        for div in divergences:
-            fig.add_shape(type="line", layer='below',
-                          x0=div['price_start']['x'], y0=div['price_start']['y'],
-                          x1=div['price_end']['x'], y1=div['price_end']['y'],
-                          line=dict(color="rgba(255, 255, 255, 0.5)", width=2, dash="dot"), row=1, col=1)
-            fig.add_shape(type="line", layer='below',
-                          x0=div['rsi_start']['x'], y0=div['rsi_start']['y'],
-                          x1=div['rsi_end']['x'], y1=div['rsi_end']['y'],
-                          line=dict(color="rgba(255, 255, 255, 0.5)", width=2, dash="dot"), row=2, col=1)
-
-    # Lógica para graficar el trade activo
     proposal = status_data.get('proposal') if status_data else None
     if proposal and all(k in proposal for k in ['entry_price', 'stop_loss', 'take_profit']):
         entry_price = proposal['entry_price']
@@ -64,7 +49,6 @@ def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: di
         fig.add_hline(y=entry_price, line_dash="dot", line_color="white", line_width=1,
                       annotation_text=f"Entrada: {entry_price}", annotation_position="bottom right", row=1, col=1)
 
-    # Layout y estilo general
     fig.update_layout(height=700, xaxis_rangeslider_visible=False, showlegend=True, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#0E1117", font_color="white", margin=dict(l=40, r=40, t=40, b=40), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     fig.update_xaxes(showspikes=True)
     fig.update_yaxes(showspikes=True, row=1, col=1)
@@ -74,18 +58,26 @@ def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: di
 # --- CONFIGURACIÓN DE PÁGINA Y CONEXIÓN A REDIS ---
 st.set_page_config(layout="wide", page_title="Infinity Room - Live", page_icon="♾️")
 
+# --- CONEXIÓN A REDIS (LÓGICA MEJORADA PARA LA NUBE) ---
+redis_url = os.getenv('REDIS_URL')
+if redis_url:
+    print("Conectando a Redis en la nube...")
+    r = redis.from_url(redis_url, decode_responses=True)
+else:
+    print("Conectando a Redis local...")
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+try:
+    r.ping()
+except redis.exceptions.ConnectionError as e:
+    st.error(f"❌ Error de conexión con Redis: {e}")
+    st.stop()
+
 # --- INTERFAZ PRINCIPAL ---
 st.title("♾️ Infinity Room - Monitor en Vivo")
 placeholder_status = st.empty()
 placeholder_chart = st.empty()
 
-try:
-    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-    r.ping()
-except redis.exceptions.ConnectionError as e:
-    st.error(f"❌ Error de conexión con Redis. Asegúrate de que Redis Server esté corriendo. Detalle: {e}")
-    st.stop()
-    
 # --- BUCLE DE ACTUALIZACIÓN EN VIVO ---
 while True:
     status_str = r.get("infinity_room:status")
@@ -93,13 +85,10 @@ while True:
     status_data = json.loads(status_str) if status_str else None
     chart_data = json.loads(chart_data_str) if chart_data_str else None
 
-    # --- Rellenar el contenedor de ESTADO ---
     with placeholder_status.container():
         reasoning_text = status_data.get('reasoning', 'Esperando al worker...') if status_data else 'Esperando al worker...'
-        # --- CAMBIO DE TEXTO ---
         st.info(f"**Análisis de Infinity Room:** {reasoning_text}")
 
-    # --- Rellenar el contenedor del GRÁFICO ---
     with placeholder_chart.container():
         if chart_data and 'data' in chart_data and 'columns' in chart_data:
             try:
