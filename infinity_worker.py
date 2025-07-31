@@ -1,4 +1,4 @@
-# archivo infinity_worker.py
+# infinity_worker.py
 import time
 import json
 import os
