@@ -13,7 +13,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 from src import config
 
-# --- FUNCIÓN DE GRÁFICO AVANZADO (Sin cambios) ---
+# --- FUNCIÓN DE GRÁFICO AVANZADO ---
 def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: dict = None) -> go.Figure:
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.8, 0.2])
     
@@ -55,10 +55,12 @@ def create_main_chart(df: pd.DataFrame, status_data: dict = None, chart_data: di
     fig.update_yaxes(range=[0, 100], row=2, col=1)
     return fig
 
-# --- CONFIGURACIÓN DE PÁGINA Y CONEXIÓN A REDIS ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(layout="wide", page_title="Infinity Room - Live", page_icon="♾️")
 
-# --- CONEXIÓN A REDIS (LÓGICA MEJORADA PARA LA NUBE) ---
+# ==============================================================================
+# --- INICIO DE LA CORRECCIÓN: CONEXIÓN DINÁMICA A REDIS ---
+# ==============================================================================
 redis_url = os.getenv('REDIS_URL')
 if redis_url:
     print("Conectando a Redis en la nube...")
@@ -72,6 +74,9 @@ try:
 except redis.exceptions.ConnectionError as e:
     st.error(f"❌ Error de conexión con Redis: {e}")
     st.stop()
+# ==============================================================================
+# --- FIN DE LA CORRECCIÓN ---
+# ==============================================================================
 
 # --- INTERFAZ PRINCIPAL ---
 st.title("♾️ Infinity Room - Monitor en Vivo")
@@ -83,7 +88,7 @@ while True:
     status_str = r.get("infinity_room:status")
     chart_data_str = r.get("infinity_room:chart_data")
     status_data = json.loads(status_str) if status_str else None
-    chart_data = json.loads(chart_data_str) if chart_data_str else None
+    chart_data = json.loads(chart_str) if chart_data_str else None
 
     with placeholder_status.container():
         reasoning_text = status_data.get('reasoning', 'Esperando al worker...') if status_data else 'Esperando al worker...'
