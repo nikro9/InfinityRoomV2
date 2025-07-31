@@ -1,4 +1,4 @@
-# src/ai_model.py
+# archivo src/ai_model.py
 import os
 import pandas as pd
 import json

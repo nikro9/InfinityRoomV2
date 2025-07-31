@@ -1,4 +1,4 @@
-# pages/4_💬_Chat_con_IA.py
+# archivo pages/4_💬_Chat_con_IA.py
 import streamlit as st
 import redis
 import time
