@@ -2,7 +2,6 @@
 streamlit==1.36.0
 ccxt==4.3.41
 pandas==2.1.4
-# Fijamos las versiones de pandas-ta y numpy para asegurar la compatibilidad
 pandas-ta==0.3.14b0
 numpy==1.26.4
 redis==5.0.4
@@ -15,3 +14,5 @@ scipy==1.13.1
 groq==0.9.0
 websockets==12.0
 google-generativeai==0.7.1
+# Añadimos httpx para asegurar compatibilidad con groq
+httpx==0.27.0
