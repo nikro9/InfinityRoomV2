@@ -14,24 +14,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "src"
 from src import config
 from src.market_data import get_historical_data, run_websocket_listener, get_live_trades_and_clear_buffer
 from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
-from src.ai_model import get_technical_analysis, get_risk_analysis
+from src.ai_model import get_ai_signal
 
-# --- CONEXIÓN A REDIS (LÓGICA MEJORADA PARA LA NUBE) ---
-redis_url = os.getenv('REDIS_URL')
-if redis_url:
-    print("Conectando a Redis en la nube...")
-    r = redis.from_url(redis_url, decode_responses=True)
-else:
-    print("Conectando a Redis local...")
-    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-
+# --- CONEXIÓN A REDIS ---
 try:
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
     r.ping()
-    print("✅ Conectado a Redis.")
 except redis.exceptions.ConnectionError as e:
     sys.exit(f"❌ Error de conexión con Redis: {e}")
 
-# --- LÓGICA DEL WEBSOCKET Y ORDER FLOW (Sin cambios) ---
+# --- LÓGICA DEL WEBSOCKET Y ORDER FLOW ---
 def websocket_thread_target():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -44,7 +36,7 @@ def calculate_order_flow_metrics(trades: list) -> dict:
     sell_volume = df_trades[df_trades['is_buyer_maker']]['quantity'].sum()
     return {"buy_volume": buy_volume, "sell_volume": sell_volume, "delta": buy_volume - sell_volume, "trade_count": len(trades)}
 
-# --- FUNCIÓN PRINCIPAL DE ANÁLISIS (Sin cambios) ---
+# --- FUNCIÓN PRINCIPAL DE ANÁLISIS ---
 def analyze_and_decide(df_5m):
     print(f"[{time.strftime('%H:%M:%S')}] Analizando {len(df_5m)} velas...")
     
@@ -62,41 +54,39 @@ def analyze_and_decide(df_5m):
 
     live_trades = get_live_trades_and_clear_buffer()
     order_flow_metrics = calculate_order_flow_metrics(live_trades)
-    print(f"📊 Flujo de Órdenes: {order_flow_metrics['trade_count']} trades, Delta={order_flow_metrics['delta']:.2f} BTC")
+    print(f"📊 Flujo de Órdenes (últimos 5 min): {order_flow_metrics['trade_count']} trades, Delta={order_flow_metrics['delta']:.2f} BTC")
 
-    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    # --- GESTIÓN DE ESTADO Y LLAMADA A LA IA ---
     current_state = json.loads(r.get("infinity_room:state") or '{"status": "IDLE", "reasoning": "Iniciando..."}')
+    new_state, proposal, raw_response = get_ai_signal(df_merged, current_state, order_flow_metrics)
     
-    new_state, proposal, analyst_raw_response = get_technical_analysis(df_merged, current_state, order_flow_metrics)
-    r.lpush("infinity_room:chat_log", analyst_raw_response)
-    r.ltrim("infinity_room:chat_log", 0, 49)
-
-    if proposal:
-        print("⚖️ Propuesta generada. Enviando al Gestor de Riesgos...")
-        risk_decision, risk_raw_response = get_risk_analysis(proposal, order_flow_metrics)
-        r.lpush("infinity_room:chat_log", risk_raw_response)
-        r.ltrim("infinity_room:chat_log", 0, 49)
-
-        if risk_decision.get("decision") == "APPROVE":
-            print("✅ ¡Propuesta APROBADA por el Gestor de Riesgos!")
-            new_state['active_trade'] = proposal
-            trade_log_entry = {**proposal, "timestamp": timestamp_utc}
-            r.lpush("infinity_room:trades", json.dumps(trade_log_entry))
-            r.ltrim("infinity_room:trades", 0, 19)
-        else:
-            print(f"❌ Propuesta RECHAZADA. Razón: {risk_decision.get('reasoning')}")
-            new_state['status'] = 'IDLE'
-            new_state['reasoning'] = f"Propuesta rechazada por Riesgos: {risk_decision.get('reasoning')}"
-
+    # --- PUBLICAR EN REDIS ---
+    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     reasoning = new_state.get('reasoning', '...')
+    
+    # Si se genera una nueva propuesta, se convierte en el "trade activo" del nuevo estado.
+    if proposal:
+        print(f"[{time.strftime('%H:%M:%S')}] ¡Propuesta de trade de la IA generada!")
+        new_state['active_trade'] = proposal
+        trade_log_entry = {**proposal, "timestamp": timestamp_utc}
+        r.lpush("infinity_room:trades", json.dumps(trade_log_entry))
+        r.ltrim("infinity_room:trades", 0, 19)
+
+    # El estado para el dashboard ahora incluye el trade activo del estado persistente
     status_update = {"status": new_state.get('status'), "reasoning": reasoning, "proposal": new_state.get('active_trade')}
     
+    # Guardar el ESTADO COMPLETO devuelto por la IA para el próximo ciclo
     r.set("infinity_room:state", json.dumps(new_state))
+    # Guardar el estado simple para el dashboard
     r.set("infinity_room:status", json.dumps(status_update))
     
     log_entry = f"[{timestamp_utc}] - {reasoning}"
     r.lpush("infinity_room:log", log_entry)
     r.ltrim("infinity_room:log", 0, 99)
+    
+    chat_log_entry = f"**Análisis de las {timestamp_utc}:**\n\n{raw_response}"
+    r.lpush("infinity_room:chat_log", chat_log_entry)
+    r.ltrim("infinity_room:chat_log", 0, 49)
     
     df_chart_data = df_merged.tail(200).reset_index().rename(columns={'ema_12': 'ema_fast', 'rsi_14': 'rsi', 'ema_200': 'ema_trend'})
     chart_json_output = json.loads(df_chart_data.to_json(orient='split'))
@@ -104,14 +94,15 @@ def analyze_and_decide(df_5m):
 
     print(f"-> ✅ Ciclo finalizado. Nuevo Estado: {new_state.get('status')}. Razón: {reasoning}")
 
-# --- BUCLE PRINCIPAL (Sin cambios) ---
+# --- BUCLE PRINCIPAL ---
 if __name__ == "__main__":
-    print("▶️  Iniciando Infinity Room (Modo Debate de IAs)...")
+    print("▶️  Iniciando Infinity Worker (Modo IA + Order Flow)...")
     ws_thread = threading.Thread(target=websocket_thread_target, daemon=True)
     ws_thread.start()
     time.sleep(5)
     
-    r.delete("infinity_room:status", "infinity_room:state", "infinity_room:chart_data", "infinity_room:log", "infinity_room:chat_log", "infinity_room:trades")
+    # Borramos solo el estado de la UI al iniciar, pero mantenemos el estado lógico del bot
+    r.delete("infinity_room:status", "infinity_room:chart_data")
 
     try:
         while True:
