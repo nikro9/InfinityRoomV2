@@ -1,34 +1,45 @@
 # src/config.py
 import os
 
-# -- CONFIGURACIÓN DEL MERCADO Y ACTIVO --
-SYMBOL = 'BTC/USDT'
-EXCHANGE = 'binance'
-TIMEFrame_OPERATIVA = '5m'
-# AJUSTADO: 200 minutos para un SML más reactivo, ideal para scalping.
-TIMEFRAME_SML = '200min' 
-
-# -- CONFIGURACIÓN DE LA ESTRATEGIA --
+# --- PARÁMETROS GENERALES COMPARTIDOS POR TODAS LAS ESTRATEGIAS ---
 EMA_FAST_PERIOD = 12
-EMA_TREND_PERIOD = 200 # Aunque no se use como filtro, lo mantenemos por si se necesita para otros cálculos.
+EMA_TREND_PERIOD = 200
 RSI_PERIOD = 14
 RSI_DIVERGENCE_LOOKBACK = 40
-
-# Lógica de Trading
 RISK_REWARD_RATIO = 1.7
-# Este % se usará para calcular el SL a partir del pivote SML
-STOP_LOSS_OFFSET_PERCENTAGE = 0.01 
+STOP_LOSS_OFFSET_PERCENTAGE = 0.01
 
-# -- CONFIGURACIÓN DEL BACKTESTER --
-INITIAL_CAPITAL = 10000
-RISK_PER_TRADE_PERCENTAGE = 1
-
-# -- RUTAS Y URLS --
-WEBSOCKET_SPOT_URL = f"wss://stream.binance.com:9443/ws/{SYMBOL.lower().replace('/', '')}@trade"
-DATA_DIR = "data"
-STATUS_FILE = os.path.join(DATA_DIR, "status.json")
-CHART_DATA_FILE = os.path.join(DATA_DIR, "chart_data.json")
-STATE_FILE = os.path.join(DATA_DIR, "trade_state.json")
-
-# -- CONFIGURACIÓN DE LA INTERFAZ --
+# --- CONFIGURACIÓN DE LA INTERFAZ ---
 REFRESH_INTERVAL = 5
+
+# --- ESTRUCTURA DE ESTRATEGIAS INDIVIDUALES ---
+STRATEGIES = {
+    "BITCOIN_PIVOTS": {
+        "enabled": True,
+        "symbol": "BTC/USDT",
+        "timeframe_operativa": "5m",
+        "sml_timeframe": "200min",
+        "sml_anchor_time": "13:20:00",
+        "redis_prefix": "infinity_room:btc_pivots"
+    },
+    "ALTCOIN_PIVOTS": {
+        "enabled": True,
+        # --- LISTA DE ACTIVOS ACTUALIZADA ---
+        "asset_list": [
+            "ETH/USDT", 
+            "XRP/USDT", 
+            "BNB/USDT", 
+            "SOL/USDT", 
+            "DOGE/USDT", 
+            "TRX/USDT", 
+            "ADA/USDT", 
+            "LTC/USDT", 
+            "BCH/USDT", 
+            "LINK/USDT"
+        ],
+        "timeframe_operativa": "5m",
+        "sml_timeframe": "400min",
+        "sml_anchor_time": "13:20:00",
+        "redis_prefix": "infinity_room:alt_pivots" # Prefijo base
+    }
+}
