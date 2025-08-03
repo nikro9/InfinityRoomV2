@@ -16,14 +16,20 @@ from src.ui_components import create_main_chart
 st.set_page_config(layout="wide", page_title="Bitcoin Pivots")
 STRATEGY_CONFIG = config.STRATEGIES["BITCOIN_PIVOTS"]
 
-st.title("♾️ Infinity Room - Monitor en Vivo para Bitcoin")
+st.title(f"♾️ Monitor en Vivo para {STRATEGY_CONFIG['symbol']}")
 
 # --- CONEXIÓN A REDIS Y BUCLE DE ACTUALIZACIÓN ---
 redis_url = os.getenv('REDIS_URL')
-if redis_url: r = redis.from_url(redis_url, decode_responses=True)
-else: r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-try: r.ping()
-except redis.exceptions.ConnectionError as e: st.error(f"❌ Error de conexión con Redis: {e}"); st.stop()
+if redis_url:
+    r = redis.from_url(redis_url, decode_responses=True)
+else:
+    r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+try:
+    r.ping()
+except redis.exceptions.ConnectionError as e:
+    st.error(f"❌ Error de conexión con Redis: {e}")
+    st.stop()
 
 placeholder_status = st.empty()
 placeholder_chart = st.empty()
@@ -60,9 +66,9 @@ while True:
             proposal = status_data['proposal']
             st.subheader("Detalles de la Propuesta de Trade Activa")
             col1, col2, col3 = st.columns(3)
-            col1.metric("Precio de Entrada", f"{proposal.get('entry_price', 0):.2f}")
-            col2.metric("Stop Loss (SL)", f"{proposal.get('stop_loss', 0):.2f}")
-            col3.metric("Take Profit (TP)", f"{proposal.get('take_profit', 0):.2f}")
+            col1.metric("Precio de Entrada", f"{proposal.get('entry_price', 0):,.2f}")
+            col2.metric("Stop Loss (SL)", f"{proposal.get('stop_loss', 0):,.2f}")
+            col3.metric("Take Profit (TP)", f"{proposal.get('take_profit', 0):,.2f}")
             st.info("Se recomienda tomar un TP1 del 75% de la posicion y el 25% restante colocar en Breakeven y dejar correr para maximizar ganancias")
 
     time.sleep(config.REFRESH_INTERVAL)
