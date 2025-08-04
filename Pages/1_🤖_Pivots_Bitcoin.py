@@ -1,4 +1,4 @@
-# pages/1_🤖_Pivots_Bitcoin.py
+# Pages/1_🤖_Pivots_Bitcoin.py
 import streamlit as st
 import pandas as pd
 import json
