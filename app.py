@@ -1,37 +1,62 @@
 # app.py
 import streamlit as st
+import os
 
-# Configuración de la página principal
+# 1. Configuración de la página principal (mantenemos la tuya)
+#    'layout="wide"' es ideal para que tu landing page ocupe toda la pantalla.
 st.set_page_config(
     page_title="Infinity Room - Plataforma de Trading",
     page_icon="♾️",
     layout="wide"
 )
 
-st.title("Bienvenido a Infinity Room ♾️")
-st.header("Tu Centro de Control para Trading Algorítmico con IA")
-st.markdown("---")
+# 2. Definimos las rutas a tus archivos HTML y CSS
+#    Asegúrate de que la carpeta 'infinity-landing' esté en la raíz de tu proyecto.
+LANDING_HTML_PATH = os.path.join('infinity-landing', 'index.html')
+LANDING_CSS_PATH = os.path.join('infinity-landing', 'styles.css')
 
-st.info("⬅️ Por favor, selecciona una estrategia o herramienta del menú de navegación lateral para comenzar.")
+# 3. Leemos el contenido de los archivos
+try:
+    with open(LANDING_HTML_PATH, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+except FileNotFoundError:
+    st.error(f"Error: No se encontró el archivo index.html en la ruta '{LANDING_HTML_PATH}'.")
+    st.stop() # Detiene la ejecución si el archivo principal no existe
 
-st.markdown(
-    """
-    ### Estrategias Disponibles:
+# Leemos el CSS de forma opcional (si no existe, no pasa nada)
+css_content = ""
+if os.path.exists(LANDING_CSS_PATH):
+    with open(LANDING_CSS_PATH, 'r', encoding='utf-8') as f:
+        # Envolvemos el CSS en etiquetas <style> para que el navegador lo entienda
+        css_content = f"<style>{f.read()}</style>"
 
-    - **🤖 Pivots Bitcoin:**
-      - Monitorea `BTC/USDT` con la estrategia de reversión en SML Channel de 200 períodos.
-    
-    - **📈 Pivots Altcoins:**
-      - Monitorea una lista seleccionada de altcoins con la misma estrategia de pivotes, pero adaptada con un SML de 400 períodos para mayor volatilidad.
+# 4. Ocultamos la barra lateral de Streamlit en esta página de inicio
+#    Esto le da a tu landing un aspecto de página web completa.
+#    La barra lateral reaparecerá en las otras páginas.
+hide_sidebar_style = """
+    <style>
+        [data-testid="stSidebar"] {display: none;}
+    </style>
+"""
 
-    ### Herramientas:
-    - **📜 Log de Actividad:**
-      - Revisa las decisiones concisas y el estado actual de los bots.
-    - **💬 Chat con IA:**
-      - Analiza el razonamiento conversacional completo y los datos que la IA utilizó para tomar cada decisión.
-    - **🚀 Backtesting:**
-      - Simula el rendimiento de las estrategias sobre datos históricos para su validación.
-    """
-)
+# 5. Combinamos todo y lo mostramos en la página
+#    Usamos st.markdown con unsafe_allow_html=True para renderizar tu código.
+full_page_html = f"""
+    {hide_sidebar_style}
+    {css_content}
+    {html_content}
+"""
+st.markdown(full_page_html, unsafe_allow_html=True)
 
-st.sidebar.success("Selecciona una vista arriba.")
+
+# --- NOTA MUY IMPORTANTE SOBRE TUS ENLACES ---
+# Para que los botones o enlaces de tu `index.html` lleven a las otras
+# páginas de Streamlit, debes asegurarte de que sus atributos `href`
+# apunten al nombre del archivo de la página, sin el número ni la extensión.
+#
+# Por ejemplo, si quieres un enlace a tu página `1_📈_Pivots_Bitcoin.py`,
+# el enlace en tu HTML debe ser así:
+#
+# <a href="/Pivots_Bitcoin">Ir al Dashboard de Bitcoin</a>
+#
+# Streamlit se encarga del resto.
