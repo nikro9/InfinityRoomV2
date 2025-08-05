@@ -2,51 +2,57 @@ import streamlit as st
 import os
 import base64
 
-# 1. Configuración de la página principal
-st.set_page_config(
-    page_title="Infinity Room - Plataforma de Trading",
-    page_icon="♾️",
-    layout="wide"
-)
+# Configuración de página ancha para que el iframe tenga espacio
+st.set_page_config(layout="wide")
 
-# 2. Función para codificar una imagen local a Base64
+# --- PASO 1: OCULTAR LA UI POR DEFECTO DE STREAMLIT ---
+# Esto elimina el header, la barra lateral, etc., para una experiencia de pantalla completa.
+hide_streamlit_ui = """
+<style>
+    #root > div:nth-child(1) > div > div > div {
+        padding: 0;
+    }
+    [data-testid="stToolbar"] {display: none;}
+    [data-testid="stHeader"] {display: none;}
+    [data-testid="stSidebar"] {display: none;}
+    footer {display: none;}
+</style>
+"""
+st.markdown(hide_streamlit_ui, unsafe_allow_html=True)
+
+
+# --- PASO 2: PREPARAR EL HTML PARA EL IFRAME ---
+# Leemos tu archivo HTML, que ya contiene su propio CSS
+try:
+    with open(os.path.join('infinity-landing', 'index.html'), 'r', encoding='utf-8') as f:
+        html_content = f.read()
+except FileNotFoundError:
+    st.error("No se encontró el archivo index.html en la carpeta 'infinity-landing'.")
+    st.stop()
+
+# Función para incrustar la imagen del logo
 def get_image_as_base64(path):
-    if not os.path.exists(path):
-        return None
+    if not os.path.exists(path): return None
     with open(path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode()
 
-# 3. Rutas a tus archivos
-LANDING_HTML_PATH = os.path.join('infinity-landing', 'index.html')
-LOGO_PATH = os.path.join('infinity-landing', 'logo.png') # Asumo que el logo está aquí
-
-# 4. Leemos el contenido del archivo HTML
-try:
-    with open(LANDING_HTML_PATH, 'r', encoding='utf-8') as f:
-        html_content = f.read()
-except FileNotFoundError:
-    st.error(f"Error: No se encontró el archivo {LANDING_HTML_PATH}.")
-    st.stop()
-
-# 5. Codificamos la imagen y la reemplazamos en el HTML
-logo_base64 = get_image_as_base64(LOGO_PATH)
+# Incrustamos el logo en el HTML
+logo_path = os.path.join('infinity-landing', 'logo.png')
+logo_base64 = get_image_as_base64(logo_path)
 if logo_base64:
-    # Reemplazamos la referencia local 'logo.png' por la imagen incrustada
-    html_content = html_content.replace(
-        'src="logo.png"', 
-        f'src="data:image/png;base64,{logo_base64}"'
-    )
+    html_content = html_content.replace('src="logo.png"', f'src="data:image/png;base64,{logo_base64}"')
 else:
-    # Si no se encuentra el logo, lo quitamos para no mostrar un ícono roto
+    # Si no hay logo, lo ocultamos para que no se vea el ícono roto
     html_content = html_content.replace('<img src="logo.png"', '<img style="display:none;"')
 
+# Codificamos el HTML final para pasarlo de forma segura al iframe
+html_b64 = base64.b64encode(html_content.encode()).decode()
 
-# 6. Ocultamos la barra lateral de Streamlit para una experiencia limpia
-hide_sidebar_style = """
-    <style>
-        [data-testid="stSidebar"] {display: none;}
-    </style>
-"""
 
-# 7. Mostramos el resultado final
-st.markdown(hide_sidebar_style + html_content, unsafe_allow_html=True)
+# --- PASO 3: CREAR EL IFRAME DE PANTALLA COMPLETA ---
+# st.components.v1.html es más robusto para esto que st.markdown
+st.components.v1.html(
+    f'<iframe src="data:text/html;base64,{html_b64}" style="width: 100%; height: 100vh; border: none; margin: 0; padding: 0; overflow: hidden;"></iframe>',
+    height=3000, # Un valor alto para asegurar que no haya doble scrollbar
+    scrolling=False
+)
