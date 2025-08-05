@@ -2,57 +2,55 @@ import streamlit as st
 import os
 import base64
 
-# Configuración de página ancha para que el iframe tenga espacio
+# 1. Configuración de página ancha, es importante que esté primero.
 st.set_page_config(layout="wide")
 
-# --- PASO 1: OCULTAR LA UI POR DEFECTO DE STREAMLIT ---
-# Esto elimina el header, la barra lateral, etc., para una experiencia de pantalla completa.
-hide_streamlit_ui = """
+# 2. --- ESTE ES EL NUEVO CÓDIGO CLAVE ---
+#    Un bloque de CSS para forzar el modo de pantalla completa real,
+#    eliminando todos los márgenes, paddings y barras de Streamlit.
+force_fullscreen_css = """
 <style>
-    #root > div:nth-child(1) > div > div > div {
-        padding: 0;
+    /* Elimina el padding alrededor del área principal */
+    .main .block-container {
+        padding: 0rem;
     }
-    [data-testid="stToolbar"] {display: none;}
-    [data-testid="stHeader"] {display: none;}
-    [data-testid="stSidebar"] {display: none;}
-    footer {display: none;}
+
+    /* Oculta la UI por defecto de Streamlit */
+    [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="stToolbar"], footer {
+        display: none;
+    }
+
+    /* Fuerza al contenedor principal a ocupar todo el ancho */
+    div[data-testid="stAppViewContainer"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 </style>
 """
-st.markdown(hide_streamlit_ui, unsafe_allow_html=True)
+st.markdown(force_fullscreen_css, unsafe_allow_html=True)
 
 
-# --- PASO 2: PREPARAR EL HTML PARA EL IFRAME ---
-# Leemos tu archivo HTML, que ya contiene su propio CSS
-try:
-    with open(os.path.join('infinity-landing', 'index.html'), 'r', encoding='utf-8') as f:
-        html_content = f.read()
-except FileNotFoundError:
-    st.error("No se encontró el archivo index.html en la carpeta 'infinity-landing'.")
-    st.stop()
+# --- PASOS 3 Y 4: Cargar HTML y Logo (esta parte se mantiene igual) ---
+HTML_PATH = os.path.join('infinity-landing', 'index.html')
+LOGO_PATH = os.path.join('infinity-landing', 'logo.png')
 
-# Función para incrustar la imagen del logo
 def get_image_as_base64(path):
     if not os.path.exists(path): return None
     with open(path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode()
 
-# Incrustamos el logo en el HTML
-logo_path = os.path.join('infinity-landing', 'logo.png')
-logo_base64 = get_image_as_base64(logo_path)
+try:
+    with open(HTML_PATH, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+except FileNotFoundError:
+    st.error(f"Error: No se encontró el archivo {HTML_PATH}.")
+    st.stop()
+
+logo_base64 = get_image_as_base64(LOGO_PATH)
 if logo_base64:
     html_content = html_content.replace('src="logo.png"', f'src="data:image/png;base64,{logo_base64}"')
 else:
-    # Si no hay logo, lo ocultamos para que no se vea el ícono roto
     html_content = html_content.replace('<img src="logo.png"', '<img style="display:none;"')
 
-# Codificamos el HTML final para pasarlo de forma segura al iframe
-html_b64 = base64.b64encode(html_content.encode()).decode()
-
-
-# --- PASO 3: CREAR EL IFRAME DE PANTALLA COMPLETA ---
-# st.components.v1.html es más robusto para esto que st.markdown
-st.components.v1.html(
-    f'<iframe src="data:text/html;base64,{html_b64}" style="width: 100%; height: 100vh; border: none; margin: 0; padding: 0; overflow: hidden;"></iframe>',
-    height=3000, # Un valor alto para asegurar que no haya doble scrollbar
-    scrolling=False
-)
+# --- PASO 5: Inyectar tu HTML ---
+st.markdown(html_content, unsafe_allow_html=True)
