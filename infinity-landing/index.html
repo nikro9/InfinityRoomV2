@@ -1,74 +1,10 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Infinity Room</title>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
-  <style>
-    /* Tu CSS se mantiene exactamente igual, solo he añadido un estilo para 'a' */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Oswald', sans-serif; }
-    section { position: relative; width: 100%; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-    .wave { position: absolute; left: 0; width: 100%; height: 100%; background: #4973ff; box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5); z-index: 0; }
-    .wave span { content: ""; position: absolute; width: 325vh; height: 325vh; top: 0; left: 50%; transform: translate(-50%, -75%); background: #000; }
-    .wave span:nth-child(1) { border-radius: 45%; background: rgba(20, 20, 20, 1); animation: animate 5s linear infinite; }
-    .wave span:nth-child(2) { border-radius: 40%; background: rgba(20, 20, 20, 0.5); animation: animate 10s linear infinite; }
-    .wave span:nth-child(3) { border-radius: 42.5%; background: rgba(20, 20, 20, 0.5); animation: animate 15s linear infinite; }
-    @keyframes animate { 0% { transform: translate(-50%, -75%) rotate(0deg); } 100% { transform: translate(-50%, -75%) rotate(360deg); } }
-    .content { position: relative; z-index: 1; color: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px; margin-bottom: 10vh; }
-    .logo { width: 80%; max-width: 00px; margin-bottom: 0; }
-    
-    h1 { 
-      font-size: 48px; 
-      background: linear-gradient(270deg, #66aaff, #3366ff, #6699ff, #aaccff, #66aaff); 
-      background-size: 800% 800%; 
-      -webkit-background-clip: text; 
-      background-clip: text; /* <--- ESTA ES LA LÍNEA CORREGIDA */
-      -webkit-text-fill-color: transparent; 
-      animation: textAurora 8s ease infinite; 
-      margin: 0; 
-    }
+/* Comenta estas dos reglas */
+/* html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Oswald', sans-serif; } */
+/* section { position: relative; width: 100%; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; flex-direction: column; } */
 
-    @keyframes textAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    .slogan { font-size: 20px; opacity: 0.8; margin-top: 0; letter-spacing: 0.7px; }
-    .section { display: flex; flex-wrap: wrap; justify-content: center; gap: 50px; margin-top: 0; }
-    .column { display: flex; flex-direction: column; align-items: center; gap: 15px; }
-    .column h2 { font-size: 22px; margin-bottom: 10px; }
-    /* Estilo añadido para que los enlaces se vean como botones */
-    a.glow-button { text-decoration: none; }
-    .glow-button { background-color: #111; color: #fff; border: none; padding: 12px 28px; min-width: 220px; font-size: 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 20px; transition: all 0.3s ease; box-shadow: 0 0 0 transparent; }
-    .glow-button:hover { box-shadow: 0 0 10px #3399ff, 0 0 20px #3399ff, 0 0 30px #3399ff; transform: scale(1.03); }
-    .icon { font-size: 18px; }
-    @media screen and (max-width: 600px) { .glow-button { min-width: 100%; } }
-  </style>
-</head>
-<body>
-  <section>
-    <div class="wave">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    <div class="content">
-      <img src="logo.png" alt="Logo" class="logo" />
-      <h1>INFINITY ROOM</h1>
-      <div class="slogan">MULTIPLE AI SCALPING ANALYSIS SYSTEM</div>
-      <div class="section">
-        <div class="column">
-          <h2>ESTRATEGIAS</h2>
-          <a href="https://web-production-13197.up.railway.app/Pivots_Bitcoin" target="_blank" class="glow-button"><span class="icon">🧠</span> BTC STRATEGY</a>
-          <a href="https://web-production-13197.up.railway.app/Pivots_Altcoins" target="_blank" class="glow-button"><span class="icon">📈</span> ALTCOINS STRATEGY</a>
-          <a href="https://web-production-13197.up.railway.app/Chat_con_IA" target="_blank" class="glow-button"><span class="icon">💬</span> IA CHAT LOG</a>
-        </div>
-        <div class="column">
-          <h2>HERRAMIENTAS</h2>
-          <a href="https://web-production-13197.up.railway.app/Log_de_Actividad" target="_blank" class="glow-button"><span class="icon">📜</span> ACTIVITY LOG</a>
-          <a href="https://web-production-13197.up.railway.app/Simulador_de_Rendimiento" target="_blank" class="glow-button"><span class="icon">📊</span> PERFORMANCE SIMULATOR</a>
-          <a href="https://web-production-13197.up.railway.app/Backtesting" target="_blank" class="glow-button"><span class="icon">🚀</span> BACKTESTING</a>
-        </div>
-      </div>
-    </div>
-  </section>
-</body>
-</html>
+/* Comenta todo el bloque de la animación .wave */
+/* .wave { position: absolute; left: 0; width: 100%; height: 100%; background: #4973ff; box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5); z-index: 0; }
+   .wave span { content: ""; position: absolute; width: 325vh; height: 325vh; top: 0; left: 50%; transform: translate(-50%, -75%); background: #000; }
+   .wave span:nth-child(1) { border-radius: 45%; background: rgba(20, 20, 20, 1); animation: animate 5s linear infinite; }
+   .wave span:nth-child(2) { border-radius: 40%; background: rgba(20, 20, 20, 0.5); animation: animate 10s linear infinite; }
+   .wave span:nth-child(3) { border-radius: 42.5%; background: rgba(20, 20, 20, 0.5); animation: animate 15s linear infinite; } */
