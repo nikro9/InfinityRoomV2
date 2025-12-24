@@ -32,12 +32,9 @@ const AppRoutes = () => {
 
   const sidebarWidth = sidebarExpanded ? 200 : 50;
 
-  // Pages with no sidebar
+  // Only hide sidebar on Landing page - show EVERYWHERE else
   const isLanding = location.pathname === '/';
-
-  // Full-screen trading pages - hide sidebar always for maximum chart space
-  const isFullScreenPage = ['/pivots-bitcoin', '/pivots-altcoins'].includes(location.pathname);
-  const hideSidebar = isLanding || isFullScreenPage;
+  const hideSidebar = isLanding || isMobile; // Hide on mobile for trading pages only
 
   return (
     <div style={{ background: '#0b0e11', minHeight: '100vh' }}>

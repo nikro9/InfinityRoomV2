@@ -1,9 +1,12 @@
-# render.yaml - Render Blueprint for Kublai Trading Platform
-# https://render.com/docs/blueprint-spec
+# render.yaml - Kublai Trading Platform
+# ARCHITECTURE: Single web service with embedded workers
+# Workers run as background threads inside the API process.
+# This avoids the need for paid background worker services.
+# Use UptimeRobot (free) to ping /ping every 14 min to prevent sleep.
 
 services:
   # ================================
-  # API Server (FastAPI)
+  # Unified API + Workers
   # ================================
   - type: web
     name: kublai-api
@@ -19,51 +22,13 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: MONGODB_URI
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
         sync: false
       - key: FRONTEND_URL
         value: https://kublai.netlify.app
-      - key: ENVIRONMENT
-        value: production
-
-  # ================================
-  # Bitcoin Worker (Background)
-  # ================================
-  - type: worker
-    name: kublai-btc-worker
-    runtime: docker
-    plan: free
-    region: oregon
-    dockerfilePath: ./Dockerfile
-    dockerCommand: python infinity_worker.py
-    autoDeploy: true
-    envVars:
-      - key: GROQ_API_KEY
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: MONGODB_URI
-        sync: false
-      - key: ENVIRONMENT
-        value: production
-
-  # ================================
-  # Altcoin Worker (Background)
-  # ================================
-  - type: worker
-    name: kublai-altcoin-worker
-    runtime: docker
-    plan: free
-    region: oregon
-    dockerfilePath: ./Dockerfile
-    dockerCommand: python altcoin_worker.py
-    autoDeploy: true
-    envVars:
-      - key: GROQ_API_KEY
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: MONGODB_URI
-        sync: false
+      - key: ENABLE_WORKERS
+        value: "true"
       - key: ENVIRONMENT
         value: production

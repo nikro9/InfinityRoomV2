@@ -6,12 +6,12 @@ python-dotenv==1.0.1
 
 # Trading
 ccxt==4.3.41
-pandas==2.1.4
-pandas-ta==0.3.14b0
-numpy==1.26.4
-scipy==1.13.1
-scikit-learn==1.5.0
-joblib==1.4.2
+pandas
+pandas-ta
+numpy
+scipy
+scikit-learn
+joblib
 
 # Data
 redis==5.0.4

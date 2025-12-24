@@ -15,6 +15,7 @@ from src import config
 from src.market_data import get_historical_data
 from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
 from src.ai_model import get_infinity_room_decision
+from src.notifications import send_telegram_message
 
 # --- CONFIGURACIÓN ESPECÍFICA ---
 STRATEGY_CONFIG = config.STRATEGIES["ALTCOIN_PIVOTS"]
@@ -71,7 +72,22 @@ def analyze_and_decide(df_5m, asset_symbol):
     chart_json_output = json.loads(df_chart_data.to_json(orient='split'))
     r.set(f"{redis_prefix}:chart_data", json.dumps(chart_json_output))
 
-    print(f"-> ✅ Ciclo para {asset_symbol} finalizado. Razón: {reasoning}")
+    # --- ENVIAR NOTIFICACIÓN POR TELEGRAM ---
+    if proposal:
+        try:
+            msg = (
+                f"🚨 *SEÑAL DE TRADING - {asset_symbol}*\n\n"
+                f"📌 Tipo: *{proposal.get('type', 'N/A')}*\n"
+                f"💰 Entry: `{proposal.get('entry_price', 'N/A')}`\n"
+                f"🛑 Stop Loss: `{proposal.get('stop_loss', 'N/A')}`\n"
+                f"🎯 Take Profit: `{proposal.get('take_profit', 'N/A')}`\n\n"
+                f"📝 {reasoning}"
+            )
+            send_telegram_message(msg)
+        except Exception as e:
+            print(f"Error enviando Telegram para {asset_symbol}: {e}")
+
+    print(f"-> Ciclo para {asset_symbol} finalizado. Razon: {reasoning}")
 
 # --- BUCLE PRINCIPAL ---
 if __name__ == "__main__":

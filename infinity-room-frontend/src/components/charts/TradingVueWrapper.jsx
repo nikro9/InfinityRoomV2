@@ -285,7 +285,7 @@ const TradingVueWrapper = memo(({
             {/* TOP LEFT: Controls Panel */}
             <div style={{
                 position: 'absolute',
-                top: 50,
+                top: 130,
                 left: 8,
                 zIndex: 30,
                 display: 'flex',

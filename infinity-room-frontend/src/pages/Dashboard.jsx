@@ -1,5 +1,6 @@
 // src/pages/Dashboard.jsx
-// Modern trading platform dashboard
+// Modern trading platform dashboard with LIVE data
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -12,10 +13,50 @@ import {
     Layers,
     Bot,
     Calculator,
-    FlaskConical
+    FlaskConical,
+    Wifi,
+    WifiOff,
 } from 'lucide-react';
+import { useMultiSymbolPrice } from '../hooks/useBinanceWebSocket';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const Dashboard = () => {
+    // Live prices from Binance WebSocket
+    const prices = useMultiSymbolPrice(['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT']);
+    
+    // Backend status
+    const [btcStatus, setBtcStatus] = useState(null);
+    const [apiOnline, setApiOnline] = useState(false);
+
+    // Poll backend status every 30s
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/btc/status`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setBtcStatus(data);
+                    setApiOnline(true);
+                } else {
+                    setApiOnline(false);
+                }
+            } catch {
+                setApiOnline(false);
+            }
+        };
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const btcPrice = prices.BTCUSDT;
+    const ethPrice = prices.ETHUSDT;
+    const solPrice = prices.SOLUSDT;
+
+    const activeSignals = btcStatus?.proposal ? 1 : 0;
+    const workerStatus = btcStatus?.status || 'OFFLINE';
+
     return (
         <div style={{
             minHeight: '100vh',
@@ -38,13 +79,33 @@ const Dashboard = () => {
                     }}>
                         KUBLAI Trading Platform
                     </h1>
+                    {/* API Status indicator */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        marginLeft: 'auto',
+                        padding: '4px 10px',
+                        borderRadius: 4,
+                        background: apiOnline ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
+                        border: `1px solid ${apiOnline ? 'rgba(38, 166, 154, 0.3)' : 'rgba(239, 83, 80, 0.3)'}`,
+                    }}>
+                        {apiOnline ? <Wifi size={14} color="#26a69a" /> : <WifiOff size={14} color="#ef5350" />}
+                        <span style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: apiOnline ? '#26a69a' : '#ef5350',
+                        }}>
+                            {apiOnline ? 'API Online' : 'API Offline'}
+                        </span>
+                    </div>
                 </div>
                 <p style={{ color: '#787b86', fontSize: 14 }}>
                     AI-powered trading strategies and market analysis
                 </p>
             </motion.div>
 
-            {/* Quick Stats */}
+            {/* Live Stats */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
@@ -53,29 +114,78 @@ const Dashboard = () => {
             }}>
                 <StatCard
                     title="BTC/USDT"
-                    value="$86,911"
-                    change={-0.66}
+                    value={btcPrice ? `$${btcPrice.price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Loading...'}
+                    change={btcPrice?.change}
                     icon={Bitcoin}
+                    live
                 />
                 <StatCard
                     title="ETH/USDT"
-                    value="$2,941"
-                    change={-1.60}
+                    value={ethPrice ? `$${ethPrice.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Loading...'}
+                    change={ethPrice?.change}
                     icon={Activity}
+                    live
                 />
                 <StatCard
-                    title="Win Rate"
-                    value="68.5%"
-                    change={2.3}
+                    title="Worker Status"
+                    value={workerStatus}
                     icon={TrendingUp}
+                    statusColor={workerStatus === 'PROPOSAL' ? '#26a69a' : workerStatus === 'IDLE' ? '#787b86' : '#ef5350'}
                 />
                 <StatCard
                     title="Active Signals"
-                    value="3"
+                    value={String(activeSignals)}
                     icon={Zap}
-                    highlight
+                    highlight={activeSignals > 0}
                 />
             </div>
+
+            {/* Active Signal Banner */}
+            {btcStatus?.proposal && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                        background: 'rgba(41, 98, 255, 0.1)',
+                        border: '1px solid rgba(41, 98, 255, 0.3)',
+                        borderRadius: 8,
+                        padding: 16,
+                        marginBottom: 24,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 16,
+                    }}
+                >
+                    <Zap size={24} color="#2962ff" />
+                    <div style={{ flex: 1 }}>
+                        <div style={{ color: '#d1d4dc', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                            🚨 Active Signal: BTC/USDT {btcStatus.proposal.type}
+                        </div>
+                        <div style={{ color: '#787b86', fontSize: 12 }}>
+                            Entry: ${btcStatus.proposal.entry_price?.toLocaleString()} | 
+                            SL: ${btcStatus.proposal.stop_loss?.toLocaleString()} | 
+                            TP: ${btcStatus.proposal.take_profit?.toLocaleString()}
+                        </div>
+                    </div>
+                    <Link to="/pivots-bitcoin" style={{ textDecoration: 'none' }}>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            style={{
+                                padding: '8px 16px',
+                                background: '#2962ff',
+                                border: 'none',
+                                borderRadius: 6,
+                                color: 'white',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            View Signal →
+                        </motion.button>
+                    </Link>
+                </motion.div>
+            )}
 
             {/* Quick Actions */}
             <div style={{ marginBottom: 32 }}>
@@ -121,15 +231,13 @@ const Dashboard = () => {
                     <StrategyCard
                         title="Pivot Points Strategy"
                         description="AI-driven support and resistance trading with automated entries"
-                        status="active"
-                        winRate={72}
+                        status={apiOnline && workerStatus !== 'OFFLINE' ? 'active' : 'offline'}
                         to="/pivots-bitcoin"
                     />
                     <StrategyCard
                         title="Volatility Box"
                         description="Range breakout strategy for high volatility markets"
                         status="development"
-                        winRate={65}
                         to="/caja-volatilidad"
                     />
                     <StrategyCard
@@ -144,7 +252,7 @@ const Dashboard = () => {
     );
 };
 
-const StatCard = ({ title, value, change, icon: Icon, highlight }) => (
+const StatCard = ({ title, value, change, icon: Icon, highlight, live, statusColor }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -156,19 +264,37 @@ const StatCard = ({ title, value, change, icon: Icon, highlight }) => (
         }}
     >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ color: '#787b86', fontSize: 12 }}>{title}</span>
+            <span style={{ color: '#787b86', fontSize: 12 }}>
+                {title}
+                {live && (
+                    <span style={{
+                        display: 'inline-block',
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: '#26a69a',
+                        marginLeft: 6,
+                        animation: 'pulse 2s infinite',
+                    }} />
+                )}
+            </span>
             <Icon size={16} color={highlight ? '#2962ff' : '#787b86'} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: '#d1d4dc', fontFamily: "'JetBrains Mono'" }}>
+        <div style={{
+            fontSize: 20,
+            fontWeight: 600,
+            color: statusColor || '#d1d4dc',
+            fontFamily: "'JetBrains Mono'"
+        }}>
             {value}
         </div>
-        {change !== undefined && (
+        {change !== undefined && change !== null && (
             <div style={{
                 fontSize: 11,
                 color: change >= 0 ? '#26a69a' : '#ef5350',
                 marginTop: 4,
             }}>
-                {change >= 0 ? '+' : ''}{change.toFixed(2)}%
+                {change >= 0 ? '+' : ''}{parseFloat(change).toFixed(2)}%
             </div>
         )}
     </motion.div>
@@ -194,7 +320,7 @@ const QuickAction = ({ to, icon: Icon, label, desc }) => (
     </Link>
 );
 
-const StrategyCard = ({ title, description, status, winRate, to }) => (
+const StrategyCard = ({ title, description, status, to }) => (
     <Link to={to} style={{ textDecoration: 'none' }}>
         <motion.div
             whileHover={{ scale: 1.01, borderColor: '#2962ff' }}
@@ -216,17 +342,14 @@ const StrategyCard = ({ title, description, status, winRate, to }) => (
                     borderRadius: 4,
                     textTransform: 'uppercase',
                     background: status === 'active' ? 'rgba(38, 166, 154, 0.2)' :
-                        status === 'development' ? 'rgba(255, 171, 64, 0.2)' : 'rgba(41, 98, 255, 0.2)',
+                        status === 'development' ? 'rgba(255, 171, 64, 0.2)' :
+                        status === 'offline' ? 'rgba(239, 83, 80, 0.2)' : 'rgba(41, 98, 255, 0.2)',
                     color: status === 'active' ? '#26a69a' :
-                        status === 'development' ? '#ffab40' : '#2962ff',
+                        status === 'development' ? '#ffab40' :
+                        status === 'offline' ? '#ef5350' : '#2962ff',
                 }}>
                     {status}
                 </div>
-                {winRate && (
-                    <span style={{ color: '#26a69a', fontSize: 12, fontFamily: "'JetBrains Mono'" }}>
-                        {winRate}% win
-                    </span>
-                )}
             </div>
             <h3 style={{ color: '#d1d4dc', fontSize: 15, fontWeight: 500, marginBottom: 8 }}>{title}</h3>
             <p style={{ color: '#787b86', fontSize: 12, lineHeight: 1.5 }}>{description}</p>

@@ -191,7 +191,7 @@ export const useMultiSymbolPrice = (symbols = ['BTCUSDT', 'ETHUSDT']) => {
 
     useEffect(() => {
         const streams = symbols.map(s => `${s.toLowerCase()}@ticker`).join('/');
-        const ws = new WebSocket(`${BINANCE_WS_URL}/stream?streams=${streams}`);
+        const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);

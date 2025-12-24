@@ -1,7 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-// API Base URL - will be configured for Render deployment
+// API Base URL - Render deployment or local
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const api = axios.create({
@@ -14,10 +14,7 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(
-    (config) => {
-        // Add any authentication headers here if needed
-        return config;
-    },
+    (config) => config,
     (error) => Promise.reject(error)
 );
 
@@ -25,7 +22,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        console.error('API Error:', error);
+        // Don't spam console on expected offline scenarios
+        if (error.code !== 'ERR_NETWORK') {
+            console.error('API Error:', error.response?.status, error.config?.url);
+        }
         return Promise.reject(error);
     }
 );
@@ -36,6 +36,7 @@ api.interceptors.response.use(
 export const bitcoinApi = {
     getStatus: () => api.get('/btc/status'),
     getChartData: () => api.get('/btc/chart'),
+    getChat: (limit = 30) => api.get(`/btc/chat?limit=${limit}`),
 };
 
 // ============================================
@@ -44,6 +45,7 @@ export const bitcoinApi = {
 export const altcoinsApi = {
     getStatus: (symbol) => api.get(`/altcoins/${symbol}/status`),
     getChartData: (symbol) => api.get(`/altcoins/${symbol}/chart`),
+    getChat: (symbol, limit = 30) => api.get(`/altcoins/${symbol}/chat?limit=${limit}`),
     getAvailableAssets: () => api.get('/altcoins/assets'),
 };
 
@@ -51,9 +53,8 @@ export const altcoinsApi = {
 // Chat / AI Logs API
 // ============================================
 export const chatApi = {
-    getLogs: (channel) => api.get(`/chat/${channel}/logs`),
+    getLogs: (channel, limit = 30) => api.get(`/chat/${channel}/logs?limit=${limit}`),
     getAvailableChannels: () => api.get('/chat/channels'),
-    clearChannel: (channel) => api.delete(`/chat/${channel}`),
 };
 
 // ============================================
