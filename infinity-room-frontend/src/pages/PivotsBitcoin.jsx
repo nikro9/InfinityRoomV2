@@ -115,7 +115,7 @@ const PivotsBitcoin = () => {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Bot size={16} />
-                                <span style={{ fontWeight: 600, fontSize: 12 }}>IA NEXUS</span>
+                                <span style={{ fontWeight: 600, fontSize: 12 }}>IA KUBLAI</span>
                             </div>
                             {aiPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
@@ -274,7 +274,7 @@ const ActivityItem = ({ time, text, type }) => (
         background: 'rgba(255,255,255,0.02)',
         borderRadius: 4,
         borderLeft: `2px solid ${type === 'bullish' ? '#26a69a' :
-                type === 'bearish' ? '#ef5350' : '#2962ff'
+            type === 'bearish' ? '#ef5350' : '#2962ff'
             }`,
     }}>
         <span style={{ color: '#787b86', marginRight: 8 }}>{time}</span>

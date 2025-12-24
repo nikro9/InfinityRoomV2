@@ -36,7 +36,7 @@ const Dashboard = () => {
                         color: '#d1d4dc',
                         letterSpacing: '-0.5px'
                     }}>
-                        NEXUS Trading Platform
+                        KUBLAI Trading Platform
                     </h1>
                 </div>
                 <p style={{ color: '#787b86', fontSize: 14 }}>

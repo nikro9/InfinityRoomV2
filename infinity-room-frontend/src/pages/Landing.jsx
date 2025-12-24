@@ -1,5 +1,5 @@
 // src/pages/Landing.jsx
-// Kublai Trading Platform - Premium Landing Page
+// Kublai Trading Platform - Premium Responsive Landing Page
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -15,18 +15,28 @@ import {
     Bell,
     Smartphone,
     ChevronDown,
-    Send
+    Send,
+    Menu,
+    X
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const Landing = () => {
     const containerRef = useRef(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <div
             ref={containerRef}
             style={{
-                height: '100vh',
+                minHeight: '100vh',
                 overflowY: 'auto',
                 background: '#050505',
                 scrollBehavior: 'smooth',
@@ -42,8 +52,8 @@ const Landing = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0 48px',
-                background: 'rgba(5, 5, 5, 0.8)',
+                padding: isMobile ? '0 16px' : '0 48px',
+                background: 'rgba(5, 5, 5, 0.95)',
                 backdropFilter: 'blur(20px)',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                 zIndex: 100,
@@ -52,30 +62,87 @@ const Landing = () => {
                     <img
                         src="/kublai-logo-side.svg"
                         alt="Kublai"
-                        style={{ height: 40, filter: 'brightness(0) invert(1)' }}
+                        style={{ height: isMobile ? 32 : 40, filter: 'brightness(0) invert(1)' }}
                     />
                 </Link>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-                    <a href="#telegram" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Telegram Bot</a>
-                    <a href="#features" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Features</a>
-                    <a href="#stats" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Results</a>
+                {/* Mobile Menu Button */}
+                {isMobile ? (
+                    <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            padding: 8,
+                        }}
+                    >
+                        {menuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+                ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+                        <a href="#telegram" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Telegram Bot</a>
+                        <a href="#features" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Features</a>
+                        <a href="#stats" style={{ color: '#888', textDecoration: 'none', fontSize: 14 }}>Results</a>
+                        <Link
+                            to="/dashboard"
+                            style={{
+                                padding: '10px 24px',
+                                background: 'linear-gradient(135deg, #ED3237, #ff6b6b)',
+                                borderRadius: 8,
+                                color: 'white',
+                                textDecoration: 'none',
+                                fontSize: 14,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Panel de Trading
+                        </Link>
+                    </div>
+                )}
+            </nav>
+
+            {/* Mobile Menu Overlay */}
+            {isMobile && menuOpen && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                        position: 'fixed',
+                        top: 64,
+                        left: 0,
+                        right: 0,
+                        background: 'rgba(5, 5, 5, 0.98)',
+                        padding: 24,
+                        zIndex: 99,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                >
+                    <a href="#telegram" onClick={() => setMenuOpen(false)} style={{ color: '#fff', textDecoration: 'none', fontSize: 16, padding: '8px 0' }}>Telegram Bot</a>
+                    <a href="#features" onClick={() => setMenuOpen(false)} style={{ color: '#fff', textDecoration: 'none', fontSize: 16, padding: '8px 0' }}>Features</a>
+                    <a href="#stats" onClick={() => setMenuOpen(false)} style={{ color: '#fff', textDecoration: 'none', fontSize: 16, padding: '8px 0' }}>Results</a>
                     <Link
                         to="/dashboard"
+                        onClick={() => setMenuOpen(false)}
                         style={{
-                            padding: '10px 24px',
+                            padding: '12px 24px',
                             background: 'linear-gradient(135deg, #ED3237, #ff6b6b)',
                             borderRadius: 8,
                             color: 'white',
                             textDecoration: 'none',
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: 600,
+                            textAlign: 'center',
                         }}
                     >
                         Panel de Trading
                     </Link>
-                </div>
-            </nav>
+                </motion.div>
+            )}
 
             {/* Hero Section */}
             <section style={{
@@ -86,6 +153,7 @@ const Landing = () => {
                 position: 'relative',
                 overflow: 'hidden',
                 paddingTop: 64,
+                padding: isMobile ? '80px 16px 40px' : '64px 24px',
             }}>
                 {/* Animated Background */}
                 <div style={{
@@ -109,31 +177,33 @@ const Landing = () => {
                     backgroundSize: '60px 60px',
                 }} />
 
-                {/* Floating Orbs */}
-                <motion.div
-                    animate={{
-                        y: [0, -20, 0],
-                        scale: [1, 1.1, 1],
-                    }}
-                    transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{
-                        position: 'absolute',
-                        top: '20%',
-                        right: '15%',
-                        width: 200,
-                        height: 200,
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, rgba(237, 50, 55, 0.3), transparent)',
-                        filter: 'blur(40px)',
-                    }}
-                />
+                {/* Floating Orbs - Hidden on mobile */}
+                {!isMobile && (
+                    <motion.div
+                        animate={{
+                            y: [0, -20, 0],
+                            scale: [1, 1.1, 1],
+                        }}
+                        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{
+                            position: 'absolute',
+                            top: '20%',
+                            right: '15%',
+                            width: 200,
+                            height: 200,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, rgba(237, 50, 55, 0.3), transparent)',
+                            filter: 'blur(40px)',
+                        }}
+                    />
+                )}
 
                 {/* Hero Content */}
                 <div style={{
                     position: 'relative',
                     textAlign: 'center',
                     maxWidth: 900,
-                    padding: '0 24px',
+                    width: '100%',
                 }}>
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
@@ -149,7 +219,7 @@ const Landing = () => {
                             background: 'rgba(237, 50, 55, 0.1)',
                             border: '1px solid rgba(237, 50, 55, 0.3)',
                             borderRadius: 100,
-                            marginBottom: 32,
+                            marginBottom: isMobile ? 24 : 32,
                         }}>
                             <Send size={14} color="#ED3237" />
                             <span style={{ fontSize: 13, color: '#ED3237', fontWeight: 500 }}>
@@ -159,10 +229,10 @@ const Landing = () => {
 
                         {/* Main Headline */}
                         <h1 style={{
-                            fontSize: 72,
+                            fontSize: isMobile ? 36 : 72,
                             fontWeight: 800,
                             lineHeight: 1.1,
-                            marginBottom: 24,
+                            marginBottom: isMobile ? 16 : 24,
                             background: 'linear-gradient(135deg, #fff 0%, #888 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
@@ -180,18 +250,26 @@ const Landing = () => {
 
                         {/* Subheadline */}
                         <p style={{
-                            fontSize: 20,
+                            fontSize: isMobile ? 16 : 20,
                             color: '#888',
                             maxWidth: 600,
-                            margin: '0 auto 40px',
+                            margin: isMobile ? '0 auto 32px' : '0 auto 40px',
                             lineHeight: 1.6,
+                            padding: '0 8px',
                         }}>
                             Recibí alertas de trading en tiempo real con análisis de IA.
                             Soportes, resistencias y puntos de entrada precisos.
                         </p>
 
                         {/* CTAs */}
-                        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 48 }}>
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            gap: 16,
+                            justifyContent: 'center',
+                            marginBottom: isMobile ? 32 : 48,
+                            padding: '0 16px',
+                        }}>
                             <a
                                 href="https://t.me/KublaiTradingBot"
                                 target="_blank"
@@ -199,8 +277,9 @@ const Landing = () => {
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
+                                    justifyContent: 'center',
                                     gap: 8,
-                                    padding: '16px 32px',
+                                    padding: isMobile ? '14px 24px' : '16px 32px',
                                     background: 'linear-gradient(135deg, #ED3237, #ff6b6b)',
                                     borderRadius: 12,
                                     color: 'white',
@@ -217,8 +296,9 @@ const Landing = () => {
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
+                                    justifyContent: 'center',
                                     gap: 8,
-                                    padding: '16px 32px',
+                                    padding: isMobile ? '14px 24px' : '16px 32px',
                                     background: 'rgba(255,255,255,0.05)',
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     borderRadius: 12,
@@ -235,9 +315,10 @@ const Landing = () => {
                         {/* Trust Signals */}
                         <div style={{
                             display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 32,
+                            gap: isMobile ? 12 : 32,
                             opacity: 0.6,
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -255,25 +336,27 @@ const Landing = () => {
                         </div>
                     </motion.div>
 
-                    {/* Scroll Indicator */}
-                    <motion.div
-                        animate={{ y: [0, 10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        style={{
-                            position: 'absolute',
-                            bottom: -80,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                        }}
-                    >
-                        <ChevronDown size={24} color="#444" />
-                    </motion.div>
+                    {/* Scroll Indicator - Hidden on mobile */}
+                    {!isMobile && (
+                        <motion.div
+                            animate={{ y: [0, 10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            style={{
+                                position: 'absolute',
+                                bottom: -80,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                            }}
+                        >
+                            <ChevronDown size={24} color="#444" />
+                        </motion.div>
+                    )}
                 </div>
             </section>
 
             {/* Telegram Bot Section */}
             <section id="telegram" style={{
-                padding: '120px 48px',
+                padding: isMobile ? '60px 16px' : '120px 48px',
                 background: 'linear-gradient(180deg, #050505 0%, #0a0a0a 100%)',
             }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -281,7 +364,7 @@ const Landing = () => {
                         initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        style={{ textAlign: 'center', marginBottom: 64 }}
+                        style={{ textAlign: 'center', marginBottom: isMobile ? 40 : 64 }}
                     >
                         <h2 style={{
                             fontSize: 14,
@@ -293,37 +376,40 @@ const Landing = () => {
                             Telegram Bot
                         </h2>
                         <h3 style={{
-                            fontSize: 48,
+                            fontSize: isMobile ? 28 : 48,
                             fontWeight: 700,
                             color: '#fff',
                             marginBottom: 24,
                         }}>
                             Trading Signals en tu Bolsillo
                         </h3>
-                        <p style={{ fontSize: 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
+                        <p style={{ fontSize: isMobile ? 16 : 18, color: '#666', maxWidth: 600, margin: '0 auto' }}>
                             Recibí alertas instantáneas cuando detectamos oportunidades de trading
                         </p>
                     </motion.div>
 
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 24,
+                        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                        gap: isMobile ? 16 : 24,
                     }}>
                         <TelegramFeature
                             icon={Bell}
                             title="Alertas Instantáneas"
                             description="Notificaciones push directas a tu celular cuando hay señales de entrada o salida."
+                            isMobile={isMobile}
                         />
                         <TelegramFeature
                             icon={BarChart3}
                             title="Análisis Técnico"
                             description="Soportes, resistencias y pivotes calculados con algoritmos propietarios."
+                            isMobile={isMobile}
                         />
                         <TelegramFeature
                             icon={Smartphone}
                             title="Siempre Conectado"
                             description="Funcionamos 24/7 monitoreando el mercado mientras vos descansás."
+                            isMobile={isMobile}
                         />
                     </div>
 
@@ -332,7 +418,7 @@ const Landing = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        style={{ textAlign: 'center', marginTop: 64 }}
+                        style={{ textAlign: 'center', marginTop: isMobile ? 40 : 64 }}
                     >
                         <a
                             href="https://t.me/KublaiTradingBot"
@@ -342,17 +428,17 @@ const Landing = () => {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 12,
-                                padding: '20px 40px',
+                                padding: isMobile ? '16px 32px' : '20px 40px',
                                 background: '#0088cc',
                                 borderRadius: 12,
                                 color: 'white',
                                 textDecoration: 'none',
-                                fontSize: 18,
+                                fontSize: isMobile ? 16 : 18,
                                 fontWeight: 600,
                                 boxShadow: '0 0 40px rgba(0, 136, 204, 0.3)',
                             }}
                         >
-                            <MessageCircle size={24} />
+                            <MessageCircle size={isMobile ? 20 : 24} />
                             Abrir en Telegram
                         </a>
                     </motion.div>
@@ -361,26 +447,26 @@ const Landing = () => {
 
             {/* Stats Section */}
             <section id="stats" style={{
-                padding: '120px 48px',
+                padding: isMobile ? '60px 16px' : '120px 48px',
                 background: '#0a0a0a',
             }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(4, 1fr)',
-                        gap: 24,
+                        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                        gap: isMobile ? 12 : 24,
                     }}>
-                        <StatCard number="24/7" label="Monitoreo Continuo" />
-                        <StatCard number="5min" label="Timeframe Principal" />
-                        <StatCard number="BTC" label="Activo Principal" />
-                        <StatCard number="Free" label="100% Gratuito" />
+                        <StatCard number="24/7" label="Monitoreo" isMobile={isMobile} />
+                        <StatCard number="5min" label="Timeframe" isMobile={isMobile} />
+                        <StatCard number="BTC" label="Activo" isMobile={isMobile} />
+                        <StatCard number="Free" label="Gratuito" isMobile={isMobile} />
                     </div>
                 </div>
             </section>
 
             {/* Features Section */}
             <section id="features" style={{
-                padding: '120px 48px',
+                padding: isMobile ? '60px 16px' : '120px 48px',
                 background: '#050505',
             }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -388,7 +474,7 @@ const Landing = () => {
                         initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        style={{ textAlign: 'center', marginBottom: 80 }}
+                        style={{ textAlign: 'center', marginBottom: isMobile ? 40 : 80 }}
                     >
                         <h2 style={{
                             fontSize: 14,
@@ -400,7 +486,7 @@ const Landing = () => {
                             Features
                         </h2>
                         <h3 style={{
-                            fontSize: 48,
+                            fontSize: isMobile ? 28 : 48,
                             fontWeight: 700,
                             color: '#fff',
                             marginBottom: 24,
@@ -411,44 +497,50 @@ const Landing = () => {
 
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 24,
+                        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                        gap: isMobile ? 16 : 24,
                     }}>
                         <FeatureCard
                             icon={Bot}
                             title="IA Avanzada"
                             description="Algoritmos de machine learning analizan patrones de mercado en tiempo real."
                             gradient="linear-gradient(135deg, #ED3237, #ff6b6b)"
+                            isMobile={isMobile}
                         />
                         <FeatureCard
                             icon={TrendingUp}
                             title="Pivotes Precisos"
                             description="Detección automática de soportes y resistencias en múltiples timeframes."
                             gradient="linear-gradient(135deg, #ff6b6b, #ffa502)"
+                            isMobile={isMobile}
                         />
                         <FeatureCard
                             icon={Shield}
                             title="Risk Management"
                             description="Sugerencias de stop-loss y take-profit calculadas automáticamente."
                             gradient="linear-gradient(135deg, #26a69a, #00c853)"
+                            isMobile={isMobile}
                         />
                         <FeatureCard
                             icon={Clock}
                             title="Tiempo Real"
                             description="WebSocket directo a Binance para datos tick-by-tick sin delays."
                             gradient="linear-gradient(135deg, #a55eea, #8854d0)"
+                            isMobile={isMobile}
                         />
                         <FeatureCard
                             icon={BarChart3}
                             title="Charts Avanzados"
                             description="Visualización profesional con indicadores técnicos configurables."
                             gradient="linear-gradient(135deg, #45aaf2, #2d98da)"
+                            isMobile={isMobile}
                         />
                         <FeatureCard
                             icon={Zap}
                             title="Alta Velocidad"
                             description="Procesamiento en milisegundos para no perderte ninguna oportunidad."
                             gradient="linear-gradient(135deg, #ffa502, #ff6b6b)"
+                            isMobile={isMobile}
                         />
                     </div>
                 </div>
@@ -456,7 +548,7 @@ const Landing = () => {
 
             {/* Final CTA */}
             <section style={{
-                padding: '120px 48px',
+                padding: isMobile ? '60px 16px' : '120px 48px',
                 background: 'linear-gradient(180deg, #0a0a0a 0%, #050505 100%)',
             }}>
                 <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
@@ -466,7 +558,7 @@ const Landing = () => {
                         viewport={{ once: true }}
                     >
                         <h2 style={{
-                            fontSize: 56,
+                            fontSize: isMobile ? 32 : 56,
                             fontWeight: 800,
                             color: '#fff',
                             marginBottom: 24,
@@ -482,10 +574,15 @@ const Landing = () => {
                                 con Ventaja
                             </span>
                         </h2>
-                        <p style={{ fontSize: 18, color: '#666', marginBottom: 40 }}>
+                        <p style={{ fontSize: isMobile ? 16 : 18, color: '#666', marginBottom: 40 }}>
                             Unite al bot de Telegram y recibí señales profesionales gratis.
                         </p>
-                        <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            gap: 16,
+                            justifyContent: 'center',
+                        }}>
                             <a
                                 href="https://t.me/KublaiTradingBot"
                                 target="_blank"
@@ -493,13 +590,14 @@ const Landing = () => {
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
+                                    justifyContent: 'center',
                                     gap: 8,
-                                    padding: '20px 48px',
+                                    padding: isMobile ? '16px 32px' : '20px 48px',
                                     background: 'linear-gradient(135deg, #ED3237, #ff6b6b)',
                                     borderRadius: 16,
                                     color: 'white',
                                     textDecoration: 'none',
-                                    fontSize: 18,
+                                    fontSize: isMobile ? 16 : 18,
                                     fontWeight: 600,
                                     boxShadow: '0 0 60px rgba(237, 50, 55, 0.5)',
                                 }}
@@ -511,14 +609,15 @@ const Landing = () => {
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
+                                    justifyContent: 'center',
                                     gap: 8,
-                                    padding: '20px 48px',
+                                    padding: isMobile ? '16px 32px' : '20px 48px',
                                     background: 'rgba(255,255,255,0.05)',
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     borderRadius: 16,
                                     color: 'white',
                                     textDecoration: 'none',
-                                    fontSize: 18,
+                                    fontSize: isMobile ? 16 : 18,
                                     fontWeight: 500,
                                 }}
                             >
@@ -531,14 +630,16 @@ const Landing = () => {
 
             {/* Footer */}
             <footer style={{
-                padding: '48px',
+                padding: isMobile ? '32px 16px' : '48px',
                 borderTop: '1px solid rgba(255,255,255,0.05)',
                 display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: isMobile ? 16 : 0,
             }}>
                 <span style={{ color: '#444', fontSize: 13 }}>
-                    © 2024 Kublai Trading. All rights reserved.
+                    © 2024 Kublai Trading
                 </span>
                 <div style={{ display: 'flex', gap: 24 }}>
                     <a href="https://t.me/KublaiTradingBot" target="_blank" rel="noopener noreferrer" style={{ color: '#666', fontSize: 13, textDecoration: 'none' }}>Telegram</a>
@@ -550,13 +651,13 @@ const Landing = () => {
 };
 
 // Component: Telegram Feature
-const TelegramFeature = ({ icon: Icon, title, description }) => (
+const TelegramFeature = ({ icon: Icon, title, description, isMobile }) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         style={{
-            padding: 32,
+            padding: isMobile ? 24 : 32,
             background: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: 16,
@@ -564,8 +665,8 @@ const TelegramFeature = ({ icon: Icon, title, description }) => (
         }}
     >
         <div style={{
-            width: 64,
-            height: 64,
+            width: isMobile ? 56 : 64,
+            height: isMobile ? 56 : 64,
             background: 'linear-gradient(135deg, #0088cc, #00aaee)',
             borderRadius: 16,
             display: 'flex',
@@ -573,25 +674,25 @@ const TelegramFeature = ({ icon: Icon, title, description }) => (
             justifyContent: 'center',
             margin: '0 auto 20px',
         }}>
-            <Icon size={28} color="white" />
+            <Icon size={isMobile ? 24 : 28} color="white" />
         </div>
-        <h4 style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>
+        <h4 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>
             {title}
         </h4>
-        <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>
+        <p style={{ fontSize: isMobile ? 13 : 14, color: '#666', lineHeight: 1.6 }}>
             {description}
         </p>
     </motion.div>
 );
 
 // Component: Stat Card
-const StatCard = ({ number, label }) => (
+const StatCard = ({ number, label, isMobile }) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         style={{
-            padding: 32,
+            padding: isMobile ? 20 : 32,
             background: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: 16,
@@ -599,7 +700,7 @@ const StatCard = ({ number, label }) => (
         }}
     >
         <div style={{
-            fontSize: 48,
+            fontSize: isMobile ? 32 : 48,
             fontWeight: 800,
             background: 'linear-gradient(90deg, #ED3237, #ff6b6b)',
             WebkitBackgroundClip: 'text',
@@ -608,19 +709,19 @@ const StatCard = ({ number, label }) => (
         }}>
             {number}
         </div>
-        <div style={{ color: '#666', fontSize: 14 }}>{label}</div>
+        <div style={{ color: '#666', fontSize: isMobile ? 12 : 14 }}>{label}</div>
     </motion.div>
 );
 
 // Component: Feature Card
-const FeatureCard = ({ icon: Icon, title, description, gradient }) => (
+const FeatureCard = ({ icon: Icon, title, description, gradient, isMobile }) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        whileHover={{ y: -8, borderColor: 'rgba(237, 50, 55, 0.3)' }}
+        whileHover={!isMobile ? { y: -8, borderColor: 'rgba(237, 50, 55, 0.3)' } : {}}
         style={{
-            padding: 32,
+            padding: isMobile ? 24 : 32,
             background: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: 16,
@@ -628,8 +729,8 @@ const FeatureCard = ({ icon: Icon, title, description, gradient }) => (
         }}
     >
         <div style={{
-            width: 48,
-            height: 48,
+            width: isMobile ? 40 : 48,
+            height: isMobile ? 40 : 48,
             background: gradient,
             borderRadius: 12,
             display: 'flex',
@@ -637,12 +738,12 @@ const FeatureCard = ({ icon: Icon, title, description, gradient }) => (
             justifyContent: 'center',
             marginBottom: 20,
         }}>
-            <Icon size={24} color="white" />
+            <Icon size={isMobile ? 20 : 24} color="white" />
         </div>
-        <h4 style={{ fontSize: 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>
+        <h4 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#fff', marginBottom: 12 }}>
             {title}
         </h4>
-        <p style={{ fontSize: 14, color: '#666', lineHeight: 1.6 }}>
+        <p style={{ fontSize: isMobile ? 13 : 14, color: '#666', lineHeight: 1.6 }}>
             {description}
         </p>
     </motion.div>
