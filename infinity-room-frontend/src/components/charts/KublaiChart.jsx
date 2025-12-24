@@ -140,6 +140,13 @@ const KublaiChart = ({
     const [controlsMinimized, setControlsMinimized] = useState(false);
     const [showTimeframeMenu, setShowTimeframeMenu] = useState(false);
 
+    // Pan & Zoom state
+    const [panOffset, setPanOffset] = useState(0); // candles to offset from end
+    const [zoomLevel, setZoomLevel] = useState(1); // 1 = normal, >1 = zoomed in
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, offset: 0 });
+    const [crosshair, setCrosshair] = useState(null); // { x, y }
+
     // Indicator visibility
     const [indicators, setIndicators] = useState({
         ema: { enabled: true, period: 12 },
@@ -196,19 +203,22 @@ const KublaiChart = ({
         return () => window.removeEventListener('resize', handleResize);
     }, [height]);
 
-    // Calculate visible candles range
+    // Calculate visible candles range with pan/zoom
     useEffect(() => {
         if (candles.length === 0) return;
 
-        const candleFullWidth = CHART_CONFIG.candleWidth + CHART_CONFIG.candleGap;
+        const baseWidth = CHART_CONFIG.candleWidth + CHART_CONFIG.candleGap;
+        const candleFullWidth = baseWidth * zoomLevel;
         const chartWidth = dimensions.width - CHART_CONFIG.padding.left - CHART_CONFIG.padding.right;
-        const maxVisible = Math.min(Math.floor(chartWidth / candleFullWidth), candles.length, 150);
+        const maxVisible = Math.min(Math.floor(chartWidth / candleFullWidth), candles.length, 200);
 
-        const end = candles.length;
+        // Apply pan offset (clamped)
+        const clampedOffset = Math.max(0, Math.min(panOffset, candles.length - maxVisible));
+        const end = candles.length - clampedOffset;
         const start = Math.max(0, end - maxVisible);
 
         setVisibleRange({ start, end });
-    }, [candles.length, dimensions.width]);
+    }, [candles.length, dimensions.width, panOffset, zoomLevel]);
 
     // Countdown timer
     useEffect(() => {
@@ -354,10 +364,12 @@ const KublaiChart = ({
             ctx.stroke();
         }
 
-        // Candle positioning
-        const candleFullWidth = candleWidth + candleGap;
+        // Candle positioning with zoom
+        const scaledCandleWidth = candleWidth * zoomLevel;
+        const scaledGap = candleGap * zoomLevel;
+        const candleFullWidth = scaledCandleWidth + scaledGap;
         const totalCandlesWidth = chartData.candles.length * candleFullWidth;
-        const startX = width - padding.right - totalCandlesWidth + candleGap;
+        const startX = width - padding.right - totalCandlesWidth + scaledGap;
 
         // Draw volume bars
         if (indicators.volume.enabled) {
@@ -367,7 +379,7 @@ const KublaiChart = ({
                 const barHeight = (candle.volume / chartData.maxVolume) * volumeHeight;
 
                 ctx.fillStyle = isUp ? colors.volumeUp : colors.volumeDown;
-                ctx.fillRect(x, volumeTop + volumeHeight - barHeight, candleWidth, barHeight);
+                ctx.fillRect(x, volumeTop + volumeHeight - barHeight, scaledCandleWidth, barHeight);
             });
         }
 
@@ -379,7 +391,7 @@ const KublaiChart = ({
 
             chartData.ema.forEach((val, i) => {
                 if (val === null) return;
-                const x = startX + i * candleFullWidth + candleWidth / 2;
+                const x = startX + i * candleFullWidth + scaledCandleWidth / 2;
                 const y = priceToY(val);
                 if (i === 0 || chartData.ema[i - 1] === null) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
@@ -402,7 +414,7 @@ const KublaiChart = ({
 
             // Wick
             ctx.fillStyle = isUp ? colors.upWick : colors.downWick;
-            ctx.fillRect(x + (candleWidth - wickWidth) / 2, wickTop, wickWidth, wickBottom - wickTop);
+            ctx.fillRect(x + (scaledCandleWidth - wickWidth) / 2, wickTop, wickWidth, wickBottom - wickTop);
 
             // Body with glow for last candle
             if (isLast) {
@@ -410,7 +422,7 @@ const KublaiChart = ({
                 ctx.shadowBlur = 8;
             }
             ctx.fillStyle = isUp ? colors.up : colors.down;
-            ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+            ctx.fillRect(x, bodyTop, scaledCandleWidth, bodyHeight);
             ctx.shadowBlur = 0;
         });
 
@@ -494,32 +506,76 @@ const KublaiChart = ({
             }
         }
 
-    }, [chartData, dimensions, height, chartAreas, indicators]);
+    }, [chartData, dimensions, height, chartAreas, indicators, zoomLevel]);
 
-    // Mouse hover
+    // Mouse handlers
+    const handleMouseDown = useCallback((e) => {
+        if (e.button !== 0) return; // Only left click
+        setIsDragging(true);
+        setDragStart({ x: e.clientX, offset: panOffset });
+    }, [panOffset]);
+
     const handleMouseMove = useCallback((e) => {
-        if (!chartData || !canvasRef.current) return;
+        if (!canvasRef.current) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-        const { padding, candleWidth, candleGap } = CHART_CONFIG;
-        const candleFullWidth = candleWidth + candleGap;
-        const totalCandlesWidth = chartData.candles.length * candleFullWidth;
-        const startX = dimensions.width - padding.right - totalCandlesWidth + candleGap;
+        // Update crosshair
+        setCrosshair({ x, y });
 
-        const candleIndex = Math.floor((x - startX) / candleFullWidth);
-
-        if (candleIndex >= 0 && candleIndex < chartData.candles.length) {
-            setHoverInfo({
-                candle: chartData.candles[candleIndex],
-                x: startX + candleIndex * candleFullWidth + candleWidth / 2,
-                index: candleIndex,
-            });
-        } else {
-            setHoverInfo(null);
+        // Handle drag pan
+        if (isDragging) {
+            const dx = e.clientX - dragStart.x;
+            const candleFullWidth = (CHART_CONFIG.candleWidth + CHART_CONFIG.candleGap) * zoomLevel;
+            const candlesMoved = Math.round(dx / candleFullWidth);
+            const newOffset = Math.max(0, dragStart.offset + candlesMoved);
+            setPanOffset(newOffset);
         }
-    }, [chartData, dimensions]);
+
+        // Hover info
+        if (chartData) {
+            const { padding, candleWidth, candleGap } = CHART_CONFIG;
+            const candleFullWidth = (candleWidth + candleGap) * zoomLevel;
+            const totalCandlesWidth = chartData.candles.length * candleFullWidth;
+            const startX = dimensions.width - padding.right - totalCandlesWidth + candleGap;
+
+            const candleIndex = Math.floor((x - startX) / candleFullWidth);
+
+            if (candleIndex >= 0 && candleIndex < chartData.candles.length) {
+                setHoverInfo({
+                    candle: chartData.candles[candleIndex],
+                    x: startX + candleIndex * candleFullWidth + candleWidth / 2,
+                    index: candleIndex,
+                });
+            } else {
+                setHoverInfo(null);
+            }
+        }
+    }, [chartData, dimensions, isDragging, dragStart, zoomLevel]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+        setIsDragging(false);
+        setCrosshair(null);
+        setHoverInfo(null);
+    }, []);
+
+    const handleWheel = useCallback((e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoomLevel(prev => Math.max(0.5, Math.min(3, prev + delta)));
+    }, []);
+
+    // Reset pan when new candles arrive (to stay at latest)
+    useEffect(() => {
+        if (panOffset === 0) return; // Already at end
+        // Don't auto-reset, let user control
+    }, [candles.length]);
 
     // Toggle indicator
     const toggleIndicator = (key) => {
@@ -528,6 +584,12 @@ const KublaiChart = ({
             [key]: { ...prev[key], enabled: !prev[key].enabled }
         }));
     };
+
+    // Double-click to reset view
+    const handleDoubleClick = useCallback(() => {
+        setPanOffset(0);
+        setZoomLevel(1);
+    }, []);
 
     if (candles.length === 0) {
         return (
@@ -568,9 +630,14 @@ const KublaiChart = ({
                     width: dimensions.width,
                     height: height,
                     display: 'block',
+                    cursor: isDragging ? 'grabbing' : 'crosshair',
                 }}
+                onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
-                onMouseLeave={() => setHoverInfo(null)}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                onWheel={handleWheel}
+                onDoubleClick={handleDoubleClick}
             />
 
             {/* Controls - Top Left (Minimizable) */}
