@@ -2,7 +2,7 @@
 // KublaiChart PRO - TradingView-style professional charting
 // 100% React Native - No Vue dependency
 
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Eye, EyeOff, ChevronDown, ChevronUp,
@@ -242,19 +242,25 @@ const KublaiChart = ({
         return { mainTop, mainHeight, mainBottom, volumeTop, rsiTop };
     }, [height, indicators]);
 
-    // Handle resize
-    useEffect(() => {
-        const handleResize = () => {
+    // Handle resize with ResizeObserver for responsive canvas
+    useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        const updateDimensions = () => {
             if (containerRef.current) {
-                setDimensions({
-                    width: containerRef.current.clientWidth,
-                    height: height,
-                });
+                const width = containerRef.current.clientWidth;
+                setDimensions({ width, height });
             }
         };
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+
+        // Initial size
+        updateDimensions();
+
+        // Use ResizeObserver for responsive updates
+        const resizeObserver = new ResizeObserver(updateDimensions);
+        resizeObserver.observe(containerRef.current);
+
+        return () => resizeObserver.disconnect();
     }, [height]);
 
     // Calculate visible candles range with pan/zoom
@@ -294,62 +300,46 @@ const KublaiChart = ({
         return () => clearInterval(interval);
     }, [candles, timeframeSec]);
 
-    // Continuous smooth animation like IQ Option
+    // Smooth animation - update animated candle toward target
+    const targetCandleRef = useRef(null);
+
     useEffect(() => {
         if (candles.length === 0) return;
-
         const lastCandle = candles[candles.length - 1];
-        if (!lastCandle) return;
-
-        // Initialize animated candle if not exists
-        if (!animatedCandle) {
-            setAnimatedCandle({ ...lastCandle });
-            return;
+        if (lastCandle) {
+            targetCandleRef.current = lastCandle;
         }
+    }, [candles]);
 
-        // Continuous animation loop - always running
-        let running = true;
-        const lerpSpeed = 0.15; // Smoothing factor (0-1, lower = smoother)
+    useEffect(() => {
+        // Animation interval - runs at 60fps equivalent
+        const lerpSpeed = 0.12;
 
-        const animate = () => {
-            if (!running) return;
+        const interval = setInterval(() => {
+            const target = targetCandleRef.current;
+            if (!target) return;
 
             setAnimatedCandle(prev => {
-                if (!prev) return lastCandle;
+                if (!prev) return target;
 
-                // Smoothly interpolate towards target values
-                const newClose = prev.close + (lastCandle.close - prev.close) * lerpSpeed;
-                const newHigh = Math.max(prev.high, lastCandle.high);
-                const newLow = Math.min(prev.low, lastCandle.low);
+                const newClose = prev.close + (target.close - prev.close) * lerpSpeed;
+                const distance = Math.abs(target.close - newClose);
 
-                // Check if we need to keep animating
-                const closeDistance = Math.abs(lastCandle.close - newClose);
-                const isSettled = closeDistance < 0.01;
-
-                if (isSettled) {
-                    return lastCandle; // Snap to final position
+                if (distance < 0.1) {
+                    return target;
                 }
 
                 return {
-                    ...lastCandle,
+                    ...target,
                     close: newClose,
-                    high: newHigh,
-                    low: newLow,
+                    high: Math.max(prev.high, target.high),
+                    low: Math.min(prev.low, target.low),
                 };
             });
+        }, 16); // ~60fps
 
-            animationRef.current = requestAnimationFrame(animate);
-        };
-
-        animationRef.current = requestAnimationFrame(animate);
-
-        return () => {
-            running = false;
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
-        };
-    }, [candles]);
+        return () => clearInterval(interval);
+    }, []);
 
     // Calculate chart data
     const chartData = useMemo(() => {
