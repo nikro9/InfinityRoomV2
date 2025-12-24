@@ -1,5 +1,5 @@
 // src/components/layout/Sidebar.jsx
-// Modern TradingView-style compact sidebar with icons only
+// Kublai Trading - Compact sidebar with icons only
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,11 +16,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
-  Layers
+  Home
 } from 'lucide-react';
 
 const menuItems = [
-  { path: '/', icon: LayoutGrid, label: 'Dashboard' },
+  { path: '/dashboard', icon: LayoutGrid, label: 'Dashboard' },
   { divider: true },
   { path: '/pivots-bitcoin', icon: Bitcoin, label: 'BTC Pivots' },
   { path: '/pivots-altcoins', icon: TrendingUp, label: 'Altcoins' },
@@ -53,8 +53,9 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
         borderRight: '1px solid #2a2e39',
       }}
     >
-      {/* Logo */}
-      <div
+      {/* Logo - Link to Home */}
+      <NavLink
+        to="/"
         style={{
           height: 48,
           display: 'flex',
@@ -63,9 +64,19 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
           borderBottom: '1px solid #2a2e39',
           gap: 8,
           padding: isExpanded ? '0 12px' : 0,
+          textDecoration: 'none',
         }}
       >
-        <Layers size={22} color="#2962ff" />
+        <img
+          src="/kublai-logo-side.svg"
+          alt="Kublai"
+          style={{
+            height: 24,
+            width: isExpanded ? 'auto' : 24,
+            objectFit: 'contain',
+            filter: 'brightness(0) invert(1)',
+          }}
+        />
         <AnimatePresence>
           {isExpanded && (
             <motion.span
@@ -73,18 +84,18 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
               animate={{ opacity: 1, width: 'auto' }}
               exit={{ opacity: 0, width: 0 }}
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#d1d4dc',
+                fontSize: 14,
+                fontWeight: 700,
+                color: '#ED3237',
                 whiteSpace: 'nowrap',
                 letterSpacing: '0.5px'
               }}
             >
-              NEXUS
+              KUBLAI
             </motion.span>
           )}
         </AnimatePresence>
-      </div>
+      </NavLink>
 
       {/* Navigation */}
       <nav style={{ flex: 1, paddingTop: 8, overflowY: 'auto' }}>
