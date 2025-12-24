@@ -564,7 +564,11 @@ const KublaiChart = ({
             {/* Canvas */}
             <canvas
                 ref={canvasRef}
-                style={{ width: '100%', height: '100%' }}
+                style={{
+                    width: dimensions.width,
+                    height: height,
+                    display: 'block',
+                }}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => setHoverInfo(null)}
             />
