@@ -1,14 +1,14 @@
 // src/pages/PivotsBitcoin.jsx
-// Kublai Trading - Responsive BTC trading view with persistent mobile navigation
+// Kublai Trading - BTC view with native React KublaiChart
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import TradingVueWrapper from '../components/charts/TradingVueWrapper';
+import KublaiChart from '../components/charts/KublaiChart';
 import MobileNavBar from '../components/layout/MobileNavBar';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import {
     Bot, TrendingUp, TrendingDown,
-    Wifi, WifiOff, Home, X
+    Wifi, WifiOff, Home
 } from 'lucide-react';
 
 const PivotsBitcoin = () => {
@@ -18,7 +18,6 @@ const PivotsBitcoin = () => {
         width: window.innerWidth,
         height: window.innerHeight
     });
-    const [showMobileMenu, setShowMobileMenu] = useState(false);
     const isMobile = windowSize.width < 768;
 
     useEffect(() => {
@@ -33,7 +32,7 @@ const PivotsBitcoin = () => {
     // Calculate heights - account for mobile nav bar
     const topBarHeight = 48;
     const mobileNavHeight = isMobile ? 56 : 0;
-    const desktopPanelWidth = isMobile ? 0 : 260;
+    const desktopPanelWidth = isMobile ? 0 : 240;
     const chartHeight = windowSize.height - topBarHeight - mobileNavHeight;
 
     return (
@@ -72,7 +71,7 @@ const PivotsBitcoin = () => {
                     }}>
                         ₿
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>BTC</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>BTC/USDT</span>
 
                     <motion.span
                         key={currentPrice}
@@ -137,9 +136,15 @@ const PivotsBitcoin = () => {
 
             {/* Main Content Area */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                {/* Chart */}
+                {/* Chart - Now using KublaiChart (100% React) */}
                 <div style={{ flex: 1, height: chartHeight, minWidth: 0 }}>
-                    <TradingVueWrapper data={candles} height={chartHeight} />
+                    <KublaiChart
+                        candles={candles}
+                        height={chartHeight}
+                        timeframe="5m"
+                        showEMA={true}
+                        emaPeriod={12}
+                    />
                 </div>
 
                 {/* Desktop Right Panel */}
@@ -178,7 +183,7 @@ const PivotsBitcoin = () => {
 
                         {/* Analysis */}
                         <div style={{ padding: '0 14px 14px' }}>
-                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 10, fontWeight: 600/*, letterSpacing: 0.5*/ }}>
+                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 10, fontWeight: 600 }}>
                                 ANÁLISIS
                             </div>
                             <p style={{ fontSize: 11, color: '#d1d4dc', lineHeight: 1.5 }}>

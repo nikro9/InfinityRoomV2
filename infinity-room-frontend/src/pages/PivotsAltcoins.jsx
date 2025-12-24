@@ -1,8 +1,8 @@
 // src/pages/PivotsAltcoins.jsx
-// Kublai Trading - Responsive Altcoins view with real Binance data
+// Kublai Trading - Altcoins view with native React KublaiChart
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import TradingVueWrapper from '../components/charts/TradingVueWrapper';
+import KublaiChart from '../components/charts/KublaiChart';
 import MobileNavBar from '../components/layout/MobileNavBar';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import { TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
@@ -87,12 +87,10 @@ const PivotsAltcoins = () => {
                 ))}
             </div>
 
-            {/* Chart Area - Now using real Binance data */}
+            {/* Chart Area - Using KublaiChart (100% React) */}
             <AltcoinChart
                 symbol={selectedSymbol}
-                color={selectedAlt.color}
                 height={chartHeight}
-                isMobile={isMobile}
             />
 
             {/* Mobile Navigation Bar */}
@@ -102,17 +100,17 @@ const PivotsAltcoins = () => {
 };
 
 // Separate chart component to manage WebSocket per symbol
-const AltcoinChart = ({ symbol, color, height, isMobile }) => {
+const AltcoinChart = ({ symbol, height }) => {
     const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, '5m');
 
     return (
         <div style={{ flex: 1, position: 'relative' }}>
-            {/* Price overlay */}
+            {/* Price & Connection overlay */}
             <div style={{
                 position: 'absolute',
                 top: 8,
-                left: 12,
-                zIndex: 10,
+                right: 70,
+                zIndex: 20,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
@@ -120,9 +118,10 @@ const AltcoinChart = ({ symbol, color, height, isMobile }) => {
                 backdropFilter: 'blur(10px)',
                 padding: '6px 12px',
                 borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
             }}>
                 <span style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 700,
                     color: priceChange >= 0 ? '#26a69a' : '#ef5350',
                     fontFamily: "'JetBrains Mono', monospace",
@@ -130,14 +129,10 @@ const AltcoinChart = ({ symbol, color, height, isMobile }) => {
                     ${currentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '-'}
                 </span>
 
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {priceChange >= 0 ? <TrendingUp size={12} color="#26a69a" /> : <TrendingDown size={12} color="#ef5350" />}
                     <span style={{
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: 600,
                         color: priceChange >= 0 ? '#26a69a' : '#ef5350',
                     }}>
@@ -145,12 +140,7 @@ const AltcoinChart = ({ symbol, color, height, isMobile }) => {
                     </span>
                 </div>
 
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    marginLeft: 8,
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {isConnected ? (
                         <>
                             <Wifi size={10} color="#26a69a" />
@@ -166,8 +156,14 @@ const AltcoinChart = ({ symbol, color, height, isMobile }) => {
                 </div>
             </div>
 
-            {/* Chart */}
-            <TradingVueWrapper data={candles} height={height} />
+            {/* KublaiChart - 100% React, no Vue! */}
+            <KublaiChart
+                candles={candles}
+                height={height}
+                timeframe="5m"
+                showEMA={true}
+                emaPeriod={12}
+            />
         </div>
     );
 };
