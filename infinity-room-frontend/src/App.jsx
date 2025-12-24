@@ -1,6 +1,6 @@
 // src/App.jsx
-// Modern trading platform with landing page
-import { useState } from 'react';
+// Kublai Trading - Mobile-first responsive app
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './components/layout/Sidebar';
@@ -22,15 +22,27 @@ import './index.css';
 const AppRoutes = () => {
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const sidebarWidth = sidebarExpanded ? 200 : 50;
 
-  // Landing page has no sidebar
+  // Pages with no sidebar
   const isLanding = location.pathname === '/';
+
+  // Full-screen trading pages (no sidebar on mobile)
+  const isFullScreenPage = ['/pivots-bitcoin', '/pivots-altcoins'].includes(location.pathname);
+  const hideSidebar = isLanding || (isMobile && isFullScreenPage);
 
   return (
     <div style={{ background: '#0b0e11', minHeight: '100vh' }}>
-      {/* Show sidebar only on app pages */}
-      {!isLanding && (
+      {/* Show sidebar only when appropriate */}
+      {!hideSidebar && (
         <Sidebar isExpanded={sidebarExpanded} setIsExpanded={setSidebarExpanded} />
       )}
 
@@ -42,7 +54,7 @@ const AppRoutes = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           style={{
-            marginLeft: isLanding ? 0 : sidebarWidth,
+            marginLeft: hideSidebar ? 0 : sidebarWidth,
             minHeight: '100vh',
             transition: 'margin-left 0.2s ease',
           }}
@@ -51,7 +63,7 @@ const AppRoutes = () => {
             {/* Landing Page - Public */}
             <Route path="/" element={<Landing />} />
 
-            {/* App Pages - With Sidebar */}
+            {/* App Pages */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pivots-bitcoin" element={<PivotsBitcoin />} />
             <Route path="/pivots-altcoins" element={<PivotsAltcoins />} />

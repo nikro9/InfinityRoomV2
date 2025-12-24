@@ -211,6 +211,7 @@ const TradingVueWrapper = memo(({
             :color-scale="'#2a2e39'"
             :toolbar="true"
             :legend-buttons="['display', 'settings', 'remove']"
+            title-txt="Kublai Charts"
           />
         `,
             });

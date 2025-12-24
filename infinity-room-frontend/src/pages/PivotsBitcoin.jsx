@@ -1,284 +1,368 @@
 // src/pages/PivotsBitcoin.jsx
-// Full-screen trading view with REAL-TIME Binance data
+// Kublai Trading - Mobile-first responsive trading view
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import TopBar from '../components/layout/TopBar';
 import TradingVueWrapper from '../components/charts/TradingVueWrapper';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
-import { Bot, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
+import {
+    Bot, ChevronDown, ChevronUp, TrendingUp, TrendingDown,
+    Wifi, WifiOff, Menu, X, Info, Star, Share2
+} from 'lucide-react';
 
 const PivotsBitcoin = () => {
-    // REAL-TIME Binance WebSocket data
     const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket('btcusdt', '5m');
 
-    const [windowHeight, setWindowHeight] = useState(window.innerHeight);
-    const [aiPanelExpanded, setAiPanelExpanded] = useState(true);
+    const [windowSize, setWindowSize] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight
+    });
+    const [showInfoPanel, setShowInfoPanel] = useState(false);
+    const isMobile = windowSize.width < 768;
 
     useEffect(() => {
-        const handleResize = () => setWindowHeight(window.innerHeight);
+        const handleResize = () => setWindowSize({
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // Chart takes full height minus topbar
-    const chartHeight = windowHeight - 48;
-
-    // Mock AI status for now
-    const status = {
-        reasoning: candles.length > 0
-            ? `Analizando BTC/USDT en tiempo real. Precio actual: $${currentPrice?.toLocaleString()}. ${priceChange > 0 ? 'Tendencia alcista' : 'Tendencia bajista'} en el corto plazo.`
-            : 'Conectando a Binance...',
-        proposal: null,
-    };
+    const topBarHeight = isMobile ? 56 : 48;
+    const chartHeight = windowSize.height - topBarHeight;
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#0b0e11' }}>
-            {/* Top Bar with real price */}
-            <TopBar
-                symbol="BTC/USDT"
-                price={currentPrice}
-                change={priceChange}
-            />
+        <div style={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#0b0e11',
+            overflow: 'hidden',
+        }}>
+            {/* Compact Top Bar */}
+            <div style={{
+                height: topBarHeight,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: isMobile ? '0 12px' : '0 16px',
+                background: '#131722',
+                borderBottom: '1px solid #2a2e39',
+                gap: 8,
+            }}>
+                {/* Left: Symbol & Price */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #f7931a, #ffab40)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: 'white',
+                        }}>
+                            ₿
+                        </div>
+                        <span style={{
+                            fontSize: isMobile ? 14 : 16,
+                            fontWeight: 700,
+                            color: '#fff',
+                        }}>
+                            BTC/USDT
+                        </span>
+                    </div>
 
-            {/* Main Content */}
-            <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
-                {/* Chart - Full Width */}
-                <div style={{ flex: 1 }}>
-                    <TradingVueWrapper
-                        data={candles}
-                        proposal={status?.proposal}
-                        height={chartHeight}
-                    />
-                </div>
+                    {/* Price */}
+                    <motion.span
+                        key={currentPrice}
+                        initial={{ scale: 1.05 }}
+                        animate={{ scale: 1 }}
+                        style={{
+                            fontSize: isMobile ? 16 : 20,
+                            fontWeight: 700,
+                            color: priceChange >= 0 ? '#26a69a' : '#ef5350',
+                            fontFamily: "'JetBrains Mono', monospace",
+                        }}
+                    >
+                        ${currentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '-'}
+                    </motion.span>
 
-                {/* Right Panel - AI & Trade Info */}
-                <motion.div
-                    initial={{ x: 300 }}
-                    animate={{ x: 0 }}
-                    style={{
-                        width: 320,
-                        background: '#131722',
-                        borderLeft: '1px solid #2a2e39',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {/* Connection Status */}
+                    {/* Change */}
                     <div style={{
-                        padding: '8px 16px',
-                        background: isConnected ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
-                        borderBottom: '1px solid #2a2e39',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 4,
+                        padding: '4px 8px',
+                        background: priceChange >= 0 ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
+                        borderRadius: 4,
+                    }}>
+                        {priceChange >= 0 ? <TrendingUp size={12} color="#26a69a" /> : <TrendingDown size={12} color="#ef5350" />}
+                        <span style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: priceChange >= 0 ? '#26a69a' : '#ef5350',
+                        }}>
+                            {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
+                        </span>
+                    </div>
+                </div>
+
+                {/* Right: Connection & Info Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* Connection Status */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '4px 8px',
+                        background: isConnected ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
+                        borderRadius: 4,
                     }}>
                         {isConnected ? (
                             <>
-                                <Wifi size={14} color="#26a69a" />
-                                <span style={{ fontSize: 11, color: '#26a69a', fontWeight: 500 }}>
-                                    BINANCE LIVE
-                                </span>
-                                <div style={{
-                                    width: 6,
-                                    height: 6,
-                                    background: '#26a69a',
-                                    borderRadius: '50%',
-                                    animation: 'pulse 1s infinite',
-                                }} />
+                                <Wifi size={12} color="#26a69a" />
+                                <span style={{ fontSize: 10, color: '#26a69a', fontWeight: 600 }}>LIVE</span>
+                                <motion.div
+                                    animate={{ opacity: [1, 0.3, 1] }}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                    style={{ width: 6, height: 6, background: '#26a69a', borderRadius: '50%' }}
+                                />
                             </>
                         ) : (
                             <>
-                                <WifiOff size={14} color="#ef5350" />
-                                <span style={{ fontSize: 11, color: '#ef5350', fontWeight: 500 }}>
-                                    DESCONECTADO
-                                </span>
+                                <WifiOff size={12} color="#ef5350" />
+                                <span style={{ fontSize: 10, color: '#ef5350', fontWeight: 600 }}>OFF</span>
                             </>
                         )}
                     </div>
 
-                    {/* AI Analysis Panel */}
-                    <div style={{ borderBottom: '1px solid #2a2e39' }}>
-                        <button
-                            onClick={() => setAiPanelExpanded(!aiPanelExpanded)}
+                    {/* Info Toggle Button */}
+                    <button
+                        onClick={() => setShowInfoPanel(!showInfoPanel)}
+                        style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 8,
+                            border: 'none',
+                            background: showInfoPanel ? 'rgba(237, 50, 55, 0.2)' : 'rgba(255,255,255,0.05)',
+                            color: showInfoPanel ? '#ED3237' : '#d1d4dc',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        {showInfoPanel ? <X size={18} /> : <Info size={18} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                {/* Chart - FULL SCREEN */}
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    inset: 0,
+                }}>
+                    <TradingVueWrapper
+                        data={candles}
+                        height={chartHeight}
+                        title="Kublai Charts"
+                    />
+                </div>
+
+                {/* Mobile Info Panel (Overlay) */}
+                <AnimatePresence>
+                    {showInfoPanel && (
+                        <motion.div
+                            initial={{ opacity: 0, y: isMobile ? '100%' : 0, x: isMobile ? 0 : 20 }}
+                            animate={{ opacity: 1, y: 0, x: 0 }}
+                            exit={{ opacity: 0, y: isMobile ? '100%' : 0, x: isMobile ? 0 : 20 }}
+                            transition={{ type: 'spring', damping: 25 }}
                             style={{
-                                width: '100%',
+                                position: 'absolute',
+                                ...(isMobile ? {
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    maxHeight: '60vh',
+                                    borderTopLeftRadius: 20,
+                                    borderTopRightRadius: 20,
+                                } : {
+                                    top: 16,
+                                    right: 16,
+                                    width: 300,
+                                    borderRadius: 16,
+                                }),
+                                background: 'rgba(19, 23, 34, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                overflow: 'hidden',
+                                zIndex: 50,
+                            }}
+                        >
+                            {/* Panel Header */}
+                            <div style={{
+                                padding: '16px 20px',
+                                borderBottom: '1px solid rgba(255,255,255,0.05)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                padding: '12px 16px',
-                                background: 'rgba(41, 98, 255, 0.1)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: '#2962ff',
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Bot size={16} />
-                                <span style={{ fontWeight: 600, fontSize: 12 }}>IA KUBLAI</span>
-                            </div>
-                            {aiPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-
-                        <AnimatePresence>
-                            {aiPanelExpanded && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    style={{ overflow: 'hidden' }}
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <Bot size={20} color="#ED3237" />
+                                    <span style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>IA Kublai</span>
+                                </div>
+                                <button
+                                    onClick={() => setShowInfoPanel(false)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#666',
+                                        cursor: 'pointer',
+                                        padding: 4,
+                                    }}
                                 >
-                                    <div style={{ padding: 16 }}>
-                                        {/* Analysis Text */}
-                                        <div style={{
-                                            fontSize: 12,
-                                            color: '#d1d4dc',
-                                            lineHeight: 1.6,
-                                            marginBottom: 16,
-                                        }}>
-                                            {status?.reasoning}
-                                        </div>
+                                    <X size={18} />
+                                </button>
+                            </div>
 
-                                        {/* Key Levels */}
-                                        <div style={{
-                                            background: 'rgba(255,255,255,0.03)',
-                                            borderRadius: 6,
-                                            padding: 12,
-                                        }}>
-                                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 8, fontWeight: 600 }}>
-                                                NIVELES CLAVE
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                    <span style={{ color: '#787b86' }}>Resistencia</span>
-                                                    <span style={{ color: '#ef5350', fontFamily: "'JetBrains Mono', monospace" }}>
-                                                        ${currentPrice ? (currentPrice * 1.02).toLocaleString() : '-'}
-                                                    </span>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                    <span style={{ color: '#787b86' }}>Precio Actual</span>
-                                                    <motion.span
-                                                        key={currentPrice}
-                                                        initial={{ backgroundColor: priceChange > 0 ? 'rgba(38, 166, 154, 0.3)' : 'rgba(239, 83, 80, 0.3)' }}
-                                                        animate={{ backgroundColor: 'transparent' }}
-                                                        transition={{ duration: 0.5 }}
-                                                        style={{
-                                                            color: '#d1d4dc',
-                                                            fontFamily: "'JetBrains Mono', monospace",
-                                                            padding: '2px 4px',
-                                                            borderRadius: 2,
-                                                        }}
-                                                    >
-                                                        ${currentPrice?.toLocaleString() || '-'}
-                                                    </motion.span>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                                                    <span style={{ color: '#787b86' }}>Soporte</span>
-                                                    <span style={{ color: '#26a69a', fontFamily: "'JetBrains Mono', monospace" }}>
-                                                        ${currentPrice ? (currentPrice * 0.98).toLocaleString() : '-'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                            {/* Panel Content */}
+                            <div style={{ padding: 20, overflowY: 'auto', maxHeight: isMobile ? 'calc(60vh - 60px)' : 400 }}>
+                                {/* Analysis */}
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ fontSize: 11, color: '#787b86', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        Análisis en Tiempo Real
                                     </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                                    <p style={{ fontSize: 13, color: '#d1d4dc', lineHeight: 1.6 }}>
+                                        {candles.length > 0
+                                            ? `Monitoreando BTC/USDT. ${priceChange > 0 ? '🟢 Tendencia alcista' : '🔴 Tendencia bajista'} en el corto plazo.`
+                                            : 'Conectando con Binance...'}
+                                    </p>
+                                </div>
 
-                    {/* Live Price Ticker */}
-                    <div style={{
-                        padding: 16,
-                        borderBottom: '1px solid #2a2e39',
-                        background: 'rgba(255,255,255,0.02)',
-                    }}>
-                        <div style={{ fontSize: 10, color: '#787b86', marginBottom: 8 }}>PRECIO EN TIEMPO REAL</div>
-                        <motion.div
-                            key={currentPrice}
-                            initial={{ scale: 1.05, color: priceChange > 0 ? '#26a69a' : '#ef5350' }}
-                            animate={{ scale: 1, color: '#ffffff' }}
-                            transition={{ duration: 0.3 }}
-                            style={{
-                                fontSize: 28,
-                                fontWeight: 700,
-                                fontFamily: "'JetBrains Mono', monospace",
-                            }}
-                        >
-                            ${currentPrice?.toLocaleString() || '-'}
+                                {/* Key Levels */}
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: 12,
+                                    padding: 16,
+                                    marginBottom: 20,
+                                }}>
+                                    <div style={{ fontSize: 11, color: '#787b86', marginBottom: 12, fontWeight: 600 }}>
+                                        NIVELES CLAVE
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <LevelRow
+                                            label="Resistencia"
+                                            value={currentPrice ? (currentPrice * 1.02).toFixed(2) : '-'}
+                                            color="#ef5350"
+                                        />
+                                        <LevelRow
+                                            label="Precio Actual"
+                                            value={currentPrice?.toFixed(2) || '-'}
+                                            color="#fff"
+                                            highlight
+                                        />
+                                        <LevelRow
+                                            label="Soporte"
+                                            value={currentPrice ? (currentPrice * 0.98).toFixed(2) : '-'}
+                                            color="#26a69a"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Quick Stats */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                    <StatBox label="Velas" value={candles.length} />
+                                    <StatBox label="Timeframe" value="5m" />
+                                </div>
+                            </div>
                         </motion.div>
-                        <div style={{
+                    )}
+                </AnimatePresence>
+
+                {/* Mobile Bottom Bar - Quick Info */}
+                {isMobile && !showInfoPanel && (
+                    <motion.div
+                        initial={{ y: 100 }}
+                        animate={{ y: 0 }}
+                        style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 56,
+                            background: 'linear-gradient(180deg, transparent, rgba(11, 14, 17, 0.9))',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 4,
-                            marginTop: 4,
-                            color: priceChange > 0 ? '#26a69a' : '#ef5350',
-                        }}>
-                            {priceChange > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                            <span style={{ fontSize: 13, fontWeight: 500 }}>
-                                {priceChange > 0 ? '+' : ''}{priceChange?.toFixed(2)}%
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Activity Log */}
-                    <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
-                        <div style={{ fontSize: 10, color: '#787b86', marginBottom: 12, fontWeight: 600 }}>
-                            ACTIVIDAD RECIENTE
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {candles.length > 0 ? (
-                                <>
-                                    <ActivityItem
-                                        time={new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                                        text={`Última vela: ${priceChange > 0 ? '🟢' : '🔴'} ${priceChange?.toFixed(2)}%`}
-                                        type={priceChange > 0 ? 'bullish' : 'bearish'}
-                                    />
-                                    <ActivityItem
-                                        time={new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                                        text={`Conectado a Binance WebSocket`}
-                                        type="info"
-                                    />
-                                    <ActivityItem
-                                        time={new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                                        text={`${candles.length} velas cargadas`}
-                                        type="info"
-                                    />
-                                </>
-                            ) : (
-                                <ActivityItem
-                                    time="--:--"
-                                    text="Cargando datos históricos..."
-                                    type="info"
-                                />
-                            )}
-                        </div>
-                    </div>
-                </motion.div>
+                            justifyContent: 'center',
+                            paddingBottom: 8,
+                        }}
+                    >
+                        <button
+                            onClick={() => setShowInfoPanel(true)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '10px 20px',
+                                background: 'rgba(237, 50, 55, 0.9)',
+                                border: 'none',
+                                borderRadius: 25,
+                                color: 'white',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 20px rgba(237, 50, 55, 0.4)',
+                            }}
+                        >
+                            <Bot size={16} /> Ver Análisis IA
+                        </button>
+                    </motion.div>
+                )}
             </div>
-
-            <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
         </div>
     );
 };
 
-const ActivityItem = ({ time, text, type }) => (
+// Helper Components
+const LevelRow = ({ label, value, color, highlight }) => (
     <div style={{
-        fontSize: 11,
-        color: '#d1d4dc',
-        padding: '8px 10px',
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: 4,
-        borderLeft: `2px solid ${type === 'bullish' ? '#26a69a' :
-            type === 'bearish' ? '#ef5350' : '#2962ff'
-            }`,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: highlight ? '8px 10px' : 0,
+        background: highlight ? 'rgba(255,255,255,0.05)' : 'transparent',
+        borderRadius: 6,
     }}>
-        <span style={{ color: '#787b86', marginRight: 8 }}>{time}</span>
-        {text}
+        <span style={{ fontSize: 12, color: '#787b86' }}>{label}</span>
+        <span style={{
+            fontSize: 13,
+            color,
+            fontWeight: 600,
+            fontFamily: "'JetBrains Mono', monospace"
+        }}>
+            ${value}
+        </span>
+    </div>
+);
+
+const StatBox = ({ label, value }) => (
+    <div style={{
+        padding: 12,
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: 8,
+        textAlign: 'center',
+    }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{value}</div>
+        <div style={{ fontSize: 10, color: '#787b86', marginTop: 4 }}>{label}</div>
     </div>
 );
 

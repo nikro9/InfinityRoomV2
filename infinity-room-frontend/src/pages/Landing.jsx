@@ -210,6 +210,32 @@ const Landing = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
+                        {/* Animated Logo */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 1, ease: 'easeOut' }}
+                            style={{ marginBottom: isMobile ? 24 : 40 }}
+                        >
+                            <motion.img
+                                src="/kublai-logo-vertical.svg"
+                                alt="Kublai"
+                                animate={{
+                                    filter: [
+                                        'drop-shadow(0 0 20px rgba(237, 50, 55, 0.3))',
+                                        'drop-shadow(0 0 40px rgba(237, 50, 55, 0.6))',
+                                        'drop-shadow(0 0 20px rgba(237, 50, 55, 0.3))',
+                                    ],
+                                }}
+                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                style={{
+                                    height: isMobile ? 100 : 140,
+                                    width: 'auto',
+                                    filter: 'brightness(0) invert(1)',
+                                }}
+                            />
+                        </motion.div>
+
                         {/* Badge */}
                         <div style={{
                             display: 'inline-flex',
