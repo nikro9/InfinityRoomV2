@@ -441,23 +441,56 @@ const KublaiChart = ({
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Price label on right
-            const labelWidth = 52;
+            // Price label on right - TradingView style with countdown
+            const labelWidth = 55;
+            const labelHeight = 28; // Taller to fit countdown
             ctx.fillStyle = isUp ? colors.up : colors.down;
-            ctx.fillRect(width - padding.right, priceY - 9, labelWidth, 18);
+            ctx.fillRect(width - padding.right, priceY - labelHeight / 2, labelWidth, labelHeight);
+
+            // Price
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 10px JetBrains Mono, monospace';
+            ctx.font = 'bold 11px JetBrains Mono, monospace';
             ctx.textAlign = 'left';
-            ctx.fillText(formatPrice(chartData.currentPrice), width - padding.right + 3, priceY + 3);
+            ctx.fillText(formatPrice(chartData.currentPrice), width - padding.right + 3, priceY - 2);
+
+            // Countdown below price
+            ctx.font = '9px JetBrains Mono, monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillText(countdown, width - padding.right + 3, priceY + 10);
         }
 
-        // Draw RSI
+        // Draw RSI panel
         if (indicators.rsi.enabled && chartData.rsi.length > 0) {
-            // RSI zones
-            ctx.fillStyle = colors.rsiOverbought;
+            // RSI separator line
+            ctx.strokeStyle = colors.grid;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, rsiTop - 5);
+            ctx.lineTo(width - padding.right, rsiTop - 5);
+            ctx.stroke();
+
+            // RSI background
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(padding.left, rsiTop, chartWidth, rsiHeight);
+
+            // RSI zones - more subtle
+            ctx.fillStyle = 'rgba(239, 83, 80, 0.15)';
             ctx.fillRect(padding.left, rsiTop, chartWidth, rsiHeight * 0.3);
-            ctx.fillStyle = colors.rsiOversold;
+            ctx.fillStyle = 'rgba(38, 166, 154, 0.15)';
             ctx.fillRect(padding.left, rsiTop + rsiHeight * 0.7, chartWidth, rsiHeight * 0.3);
+
+            // RSI zone lines (70 and 30)
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 0.5;
+            ctx.setLineDash([2, 2]);
+            [0.3, 0.5, 0.7].forEach(pct => {
+                const y = rsiTop + rsiHeight * pct;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
 
             // RSI line
             ctx.strokeStyle = colors.rsiLine;
@@ -506,7 +539,7 @@ const KublaiChart = ({
             }
         }
 
-    }, [chartData, dimensions, height, chartAreas, indicators, zoomLevel]);
+    }, [chartData, dimensions, height, chartAreas, indicators, zoomLevel, countdown]);
 
     // Mouse handlers
     const handleMouseDown = useCallback((e) => {
@@ -808,39 +841,6 @@ const KublaiChart = ({
                 </motion.div>
             </motion.div>
 
-            {/* Countdown - Top Right */}
-            <motion.div
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: CHART_CONFIG.padding.right + 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'rgba(19, 23, 34, 0.85)',
-                    backdropFilter: 'blur(10px)',
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                }}
-            >
-                <span style={{ fontSize: 10, color: '#787b86' }}>Cierre</span>
-                <motion.span
-                    key={countdown}
-                    initial={{ scale: 1.1 }}
-                    animate={{ scale: 1 }}
-                    style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: '#ED3237',
-                        fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                >
-                    {countdown}
-                </motion.span>
-            </motion.div>
 
             {/* Hover Tooltip */}
             <AnimatePresence>
