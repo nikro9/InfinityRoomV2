@@ -137,6 +137,8 @@ const PivotsBitcoin = () => {
                     <TradingVueWrapper
                         data={candles}
                         height={chartHeight}
+                        timeframe={timeframe}
+                        onTimeframeChange={setTimeframe}
                     />
                 </div>
 

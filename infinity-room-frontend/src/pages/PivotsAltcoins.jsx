@@ -19,6 +19,7 @@ const ALTCOIN_LIST = [
 
 const PivotsAltcoins = () => {
     const [selectedSymbol, setSelectedSymbol] = useState('ethusdt');
+    const [timeframe, setTimeframe] = useState('5m');
 
     const [windowSize, setWindowSize] = useState({
         width: window.innerWidth,
@@ -87,6 +88,8 @@ const PivotsAltcoins = () => {
             <AltcoinChartWrapper
                 symbol={selectedSymbol}
                 height={chartHeight}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
             />
 
             {/* Mobile Nav */}
@@ -96,8 +99,8 @@ const PivotsAltcoins = () => {
 };
 
 // Wrapper for WebSocket per symbol
-const AltcoinChartWrapper = ({ symbol, height }) => {
-    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, '5m');
+const AltcoinChartWrapper = ({ symbol, height, timeframe, onTimeframeChange }) => {
+    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, timeframe);
 
     return (
         <div style={{ flex: 1, position: 'relative' }}>
@@ -105,7 +108,7 @@ const AltcoinChartWrapper = ({ symbol, height }) => {
             <div style={{
                 position: 'absolute',
                 top: 8,
-                right: 120,
+                right: 8,
                 zIndex: 25,
                 display: 'flex',
                 alignItems: 'center',
@@ -152,6 +155,8 @@ const AltcoinChartWrapper = ({ symbol, height }) => {
             <TradingVueWrapper
                 data={candles}
                 height={height}
+                timeframe={timeframe}
+                onTimeframeChange={onTimeframeChange}
             />
         </div>
     );

@@ -1,14 +1,31 @@
 // src/components/charts/TradingVueWrapper.jsx
-// Trading-Vue-JS wrapper - Full screen, no borders, step-line pivots
-import { useEffect, useRef, memo, useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+// Trading-Vue-JS wrapper with zoom preservation and overlays
+import { useEffect, useRef, memo, useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Vue from 'vue';
 import TradingVue from 'trading-vue-js';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import IndicatorSettings from './IndicatorSettings';
-import { calcEMA, calcVWAP, calcPivots, calcRSI, defaultIndicatorSettings } from '../../lib/indicators';
+import { calcEMA, calcVWAP, calcPivots, calcRSI } from '../../lib/indicators';
+import { ChevronDown, Settings } from 'lucide-react';
 
 Vue.use(TradingVue);
+
+// Timeframes
+const TIMEFRAMES = [
+    { value: '1m', label: '1m' },
+    { value: '5m', label: '5m' },
+    { value: '15m', label: '15m' },
+    { value: '1h', label: '1H' },
+    { value: '4h', label: '4H' },
+    { value: '1d', label: '1D' },
+];
+
+// Default indicator settings
+const defaultSettings = {
+    ema: { enabled: true, length: 12, color: '#f7931a' },
+    pivots: { enabled: true, period: 80, resistanceColor: '#ef5350', supportColor: '#26a69a' },
+    rsi: { enabled: false, length: 14, color: '#7E57C2' },
+};
 
 /**
  * Convert OHLCV data to trading-vue format
@@ -26,18 +43,14 @@ const formatDataForTradingVue = (candles) => {
 };
 
 /**
- * Generate step-line data for pivots (horizontal lines with jumps)
- * This creates the TradingView-style step lines without diagonal connections
+ * Generate step-line data for pivots
  */
 const generateStepLineData = (times, values) => {
     const result = [];
     let lastValidValue = null;
-
     for (let i = 0; i < times.length; i++) {
         if (values[i] !== null) {
-            // If value changed, we create a step by not connecting diagonally
             if (lastValidValue !== null && values[i] !== lastValidValue) {
-                // Add the last value at current time to create horizontal line
                 result.push([times[i], lastValidValue]);
             }
             result.push([times[i], values[i]]);
@@ -48,9 +61,9 @@ const generateStepLineData = (times, values) => {
 };
 
 /**
- * Generate overlay data from indicator calculations
+ * Generate overlays from indicator settings
  */
-const generateOverlays = (candles, settings, proposal) => {
+const generateOverlays = (candles, settings) => {
     if (!candles || candles.length === 0) return { onchart: [], offchart: [] };
 
     const closes = candles.map(c => parseFloat(c.close));
@@ -59,83 +72,42 @@ const generateOverlays = (candles, settings, proposal) => {
     const onchart = [];
     const offchart = [];
 
-    // EMA Indicator
+    // EMA
     if (settings.ema.enabled) {
         const ema = calcEMA(closes, settings.ema.length);
         onchart.push({
             name: `EMA ${settings.ema.length}`,
             type: 'Spline',
             data: times.map((t, i) => ema[i] !== null ? [t, ema[i]] : null).filter(Boolean),
-            settings: {
-                color: settings.ema.color,
-                lineWidth: settings.ema.lineWidth,
-            },
+            settings: { color: settings.ema.color, lineWidth: 1.5 },
         });
     }
 
-    // HFT Combo
-    if (settings.hft.enabled) {
-        const hftEma = calcEMA(closes, settings.hft.ema.length);
-        onchart.push({
-            name: `HFT EMA ${settings.hft.ema.length}`,
-            type: 'Spline',
-            data: times.map((t, i) => hftEma[i] !== null ? [t, hftEma[i]] : null).filter(Boolean),
-            settings: { color: settings.hft.ema.color, lineWidth: 2 },
-        });
-
-        if (settings.hft.vwap.enabled) {
-            const vwap = calcVWAP(candles);
-            onchart.push({
-                name: 'VWAP',
-                type: 'Spline',
-                data: times.map((t, i) => vwap[i] !== null ? [t, vwap[i]] : null).filter(Boolean),
-                settings: { color: settings.hft.vwap.color, lineWidth: 2 },
-            });
-        }
-    }
-
-    // Main Pivots with STEP LINES (horizontal with jumps - like TradingView)
+    // Pivots
     if (settings.pivots.enabled) {
         const pivots = calcPivots(candles, settings.pivots.period);
-
-        // Create step-line data for resistance
-        const resistanceStepData = generateStepLineData(times, pivots.resistance);
         onchart.push({
-            name: `Resistencia ${settings.pivots.period}m`,
+            name: 'R',
             type: 'Spline',
-            data: resistanceStepData,
-            settings: {
-                color: settings.pivots.resistanceColor,
-                lineWidth: settings.pivots.lineWidth,
-            },
+            data: generateStepLineData(times, pivots.resistance),
+            settings: { color: settings.pivots.resistanceColor, lineWidth: 1 },
         });
-
-        // Create step-line data for support
-        const supportStepData = generateStepLineData(times, pivots.support);
         onchart.push({
-            name: `Soporte ${settings.pivots.period}m`,
+            name: 'S',
             type: 'Spline',
-            data: supportStepData,
-            settings: {
-                color: settings.pivots.supportColor,
-                lineWidth: settings.pivots.lineWidth,
-            },
+            data: generateStepLineData(times, pivots.support),
+            settings: { color: settings.pivots.supportColor, lineWidth: 1 },
         });
     }
 
-    // RSI (offchart panel)
+    // RSI
     if (settings.rsi.enabled) {
         const rsi = calcRSI(closes, settings.rsi.length);
         offchart.push({
-            name: `RSI ${settings.rsi.length}`,
+            name: `RSI`,
             type: 'RSI',
             data: times.map((t, i) => rsi[i] !== null ? [t, rsi[i]] : null).filter(Boolean),
-            settings: {
-                color: settings.rsi.color,
-                upper: settings.rsi.overbought,
-                lower: settings.rsi.oversold,
-                backColor: '#7E57C220',
-            },
+            settings: { color: settings.rsi.color, upper: 70, lower: 30 },
         });
     }
 
@@ -145,20 +117,59 @@ const generateOverlays = (candles, settings, proposal) => {
 const TradingVueWrapper = memo(({
     data = [],
     height = 500,
-    proposal = null,
+    timeframe = '5m',
+    onTimeframeChange,
 }) => {
     const containerRef = useRef(null);
     const vueInstanceRef = useRef(null);
-    const [showSettings, setShowSettings] = useState(false);
-    const [indicatorSettings, setIndicatorSettings] = useState(defaultIndicatorSettings);
+    const isInitialized = useRef(false);
+
+    const [indicatorSettings, setIndicatorSettings] = useState(defaultSettings);
+    const [showTimeframeMenu, setShowTimeframeMenu] = useState(false);
+    const [hoverCandle, setHoverCandle] = useState(null);
 
     const hasData = data && data.length > 0;
 
+    // Get current price and last candle for overlay
+    const lastCandle = useMemo(() => {
+        if (!hasData) return null;
+        return data[data.length - 1];
+    }, [data, hasData]);
+
+    // Calculate countdown
+    const [countdown, setCountdown] = useState('--:--');
+    useEffect(() => {
+        if (!lastCandle) return;
+
+        const timeframeSec = {
+            '1m': 60, '5m': 300, '15m': 900,
+            '1h': 3600, '4h': 14400, '1d': 86400
+        }[timeframe] || 300;
+
+        const updateCountdown = () => {
+            const candleStart = (lastCandle.time || Math.floor(new Date(lastCandle.timestamp).getTime() / 1000));
+            const candleEnd = candleStart + timeframeSec;
+            const remaining = candleEnd - Math.floor(Date.now() / 1000);
+            if (remaining <= 0) {
+                setCountdown('00:00');
+            } else {
+                const min = Math.floor(remaining / 60);
+                const sec = remaining % 60;
+                setCountdown(`${min}:${sec.toString().padStart(2, '0')}`);
+            }
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
+        return () => clearInterval(interval);
+    }, [lastCandle, timeframe]);
+
+    // Build chart data
     const chartData = useMemo(() => {
         if (!hasData) return null;
 
         const ohlcv = formatDataForTradingVue(data);
-        const overlays = generateOverlays(data, indicatorSettings, proposal);
+        const overlays = generateOverlays(data, indicatorSettings);
 
         return {
             chart: {
@@ -174,15 +185,11 @@ const TradingVueWrapper = memo(({
             onchart: overlays.onchart,
             offchart: overlays.offchart,
         };
-    }, [data, indicatorSettings, hasData, proposal]);
+    }, [data, indicatorSettings, hasData]);
 
+    // Initialize Vue instance ONCE (not on data change)
     useEffect(() => {
-        if (!containerRef.current || !hasData || !chartData) return;
-
-        if (vueInstanceRef.current) {
-            try { vueInstanceRef.current.$destroy(); } catch (e) { }
-            vueInstanceRef.current = null;
-        }
+        if (!containerRef.current || !hasData || !chartData || isInitialized.current) return;
 
         containerRef.current.innerHTML = '';
         const mountEl = document.createElement('div');
@@ -200,24 +207,25 @@ const TradingVueWrapper = memo(({
                     };
                 },
                 template: `
-          <trading-vue
-            :data="chartData"
-            :width="width"
-            :height="height"
-            :color-back="'#0b0e11'"
-            :color-grid="'rgba(42, 46, 57, 0.5)'"
-            :color-text="'#787b86'"
-            :color-text-hl="'#d1d4dc'"
-            :color-scale="'#2a2e39'"
-            :toolbar="false"
-            :legend-buttons="[]"
-            :legend="false"
-            title-txt=""
-          />
-        `,
+                    <trading-vue
+                        :data="chartData"
+                        :width="width"
+                        :height="height"
+                        :color-back="'#0b0e11'"
+                        :color-grid="'rgba(42, 46, 57, 0.5)'"
+                        :color-text="'#787b86'"
+                        :color-text-hl="'#d1d4dc'"
+                        :color-scale="'#2a2e39'"
+                        :toolbar="false"
+                        :legend-buttons="[]"
+                        :legend="false"
+                        title-txt=""
+                    />
+                `,
             });
 
             vueInstanceRef.current = vm;
+            isInitialized.current = true;
         } catch (err) {
             console.error('TradingVue mount error:', err);
         }
@@ -227,7 +235,6 @@ const TradingVueWrapper = memo(({
                 vueInstanceRef.current.width = containerRef.current.clientWidth;
             }
         };
-
         window.addEventListener('resize', handleResize);
 
         return () => {
@@ -235,80 +242,228 @@ const TradingVueWrapper = memo(({
             if (vueInstanceRef.current) {
                 try { vueInstanceRef.current.$destroy(); } catch (e) { }
                 vueInstanceRef.current = null;
+                isInitialized.current = false;
             }
         };
-    }, [chartData, height, hasData]);
+    }, [hasData, height]); // Note: removed chartData from deps
 
+    // Update data without recreating instance (preserves zoom)
     useEffect(() => {
         if (vueInstanceRef.current && chartData) {
             vueInstanceRef.current.chartData = chartData;
         }
     }, [chartData]);
 
+    // Toggle indicator
+    const toggleIndicator = useCallback((key) => {
+        setIndicatorSettings(prev => ({
+            ...prev,
+            [key]: { ...prev[key], enabled: !prev[key].enabled }
+        }));
+    }, []);
+
     if (!hasData) {
         return (
-            <div
-                style={{
-                    height,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#0b0e11',
-                }}
-            >
+            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b0e11' }}>
                 <LoadingSpinner text="Cargando datos de mercado..." />
             </div>
         );
     }
 
-    return (
-        <>
-            {/* Chart container - NO BORDERS, NO PADDING */}
-            <div
-                style={{
-                    height,
-                    width: '100%',
-                    background: '#0b0e11',
-                    position: 'relative',
-                }}
-            >
-                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+    const currentPrice = lastCandle?.close;
+    const priceChange = lastCandle ? ((lastCandle.close - lastCandle.open) / lastCandle.open * 100) : 0;
+    const isUp = priceChange >= 0;
 
-                {/* Floating Settings Button */}
+    return (
+        <div style={{ height, width: '100%', background: '#0b0e11', position: 'relative' }}>
+            {/* Chart */}
+            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+            {/* Top Left Controls */}
+            <div style={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                zIndex: 20,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(19, 23, 34, 0.9)',
+                backdropFilter: 'blur(10px)',
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+                {/* Timeframe Selector */}
+                <div style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setShowTimeframeMenu(!showTimeframeMenu)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 8px',
+                            background: 'rgba(237, 50, 55, 0.2)',
+                            border: '1px solid rgba(237, 50, 55, 0.3)',
+                            borderRadius: 4,
+                            color: '#ED3237',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {timeframe.toUpperCase()}
+                        <ChevronDown size={12} />
+                    </button>
+
+                    <AnimatePresence>
+                        {showTimeframeMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    marginTop: 4,
+                                    background: 'rgba(19, 23, 34, 0.98)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 6,
+                                    overflow: 'hidden',
+                                    zIndex: 100,
+                                }}
+                            >
+                                {TIMEFRAMES.map(tf => (
+                                    <button
+                                        key={tf.value}
+                                        onClick={() => {
+                                            onTimeframeChange?.(tf.value);
+                                            setShowTimeframeMenu(false);
+                                        }}
+                                        style={{
+                                            display: 'block',
+                                            width: '100%',
+                                            padding: '6px 16px',
+                                            background: timeframe === tf.value ? 'rgba(237, 50, 55, 0.2)' : 'transparent',
+                                            border: 'none',
+                                            color: timeframe === tf.value ? '#ED3237' : '#d1d4dc',
+                                            fontSize: 11,
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                        }}
+                                    >
+                                        {tf.label}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+
+                {/* Indicator Toggles */}
                 <button
-                    onClick={() => setShowSettings(true)}
+                    onClick={() => toggleIndicator('ema')}
                     style={{
-                        position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: 'rgba(19, 23, 34, 0.9)',
-                        backdropFilter: 'blur(10px)',
-                        color: '#d1d4dc',
+                        padding: '3px 6px',
+                        background: indicatorSettings.ema.enabled ? 'rgba(247, 147, 26, 0.2)' : 'transparent',
+                        border: 'none',
+                        borderRadius: 3,
+                        color: indicatorSettings.ema.enabled ? '#f7931a' : '#787b86',
+                        fontSize: 10,
+                        fontWeight: 500,
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 16,
-                        zIndex: 10,
                     }}
-                    title="Indicadores"
                 >
-                    ⚙️
+                    EMA
+                </button>
+
+                <button
+                    onClick={() => toggleIndicator('pivots')}
+                    style={{
+                        padding: '3px 6px',
+                        background: indicatorSettings.pivots.enabled ? 'rgba(38, 166, 154, 0.2)' : 'transparent',
+                        border: 'none',
+                        borderRadius: 3,
+                        color: indicatorSettings.pivots.enabled ? '#26a69a' : '#787b86',
+                        fontSize: 10,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                    }}
+                >
+                    S/R
+                </button>
+
+                <button
+                    onClick={() => toggleIndicator('rsi')}
+                    style={{
+                        padding: '3px 6px',
+                        background: indicatorSettings.rsi.enabled ? 'rgba(126, 87, 194, 0.2)' : 'transparent',
+                        border: 'none',
+                        borderRadius: 3,
+                        color: indicatorSettings.rsi.enabled ? '#7E57C2' : '#787b86',
+                        fontSize: 10,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                    }}
+                >
+                    RSI
                 </button>
             </div>
 
-            {/* Settings Modal */}
-            <IndicatorSettings
-                isOpen={showSettings}
-                onClose={() => setShowSettings(false)}
-                settings={indicatorSettings}
-                onSettingsChange={setIndicatorSettings}
-            />
-        </>
+            {/* Top Left OHLC Data */}
+            {lastCandle && (
+                <div style={{
+                    position: 'absolute',
+                    top: 44,
+                    left: 8,
+                    zIndex: 15,
+                    fontSize: 10,
+                    color: '#787b86',
+                    fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                    <span>O</span><span style={{ color: isUp ? '#26a69a' : '#ef5350', marginLeft: 2 }}>{parseFloat(lastCandle.open).toFixed(2)}</span>
+                    <span style={{ marginLeft: 8 }}>H</span><span style={{ color: isUp ? '#26a69a' : '#ef5350', marginLeft: 2 }}>{parseFloat(lastCandle.high).toFixed(2)}</span>
+                    <span style={{ marginLeft: 8 }}>L</span><span style={{ color: isUp ? '#26a69a' : '#ef5350', marginLeft: 2 }}>{parseFloat(lastCandle.low).toFixed(2)}</span>
+                    <span style={{ marginLeft: 8 }}>C</span><span style={{ color: isUp ? '#26a69a' : '#ef5350', marginLeft: 2 }}>{parseFloat(lastCandle.close).toFixed(2)}</span>
+                </div>
+            )}
+
+            {/* Price + Countdown Label (TradingView style) - Right side */}
+            {currentPrice && (
+                <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '40%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 20,
+                    background: isUp ? '#26a69a' : '#ef5350',
+                    padding: '6px 8px',
+                    borderRadius: '4px 0 0 4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                }}>
+                    <span style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: 'white',
+                        fontFamily: "'JetBrains Mono', monospace",
+                    }}>
+                        {parseFloat(currentPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span style={{
+                        fontSize: 9,
+                        color: 'rgba(255,255,255,0.8)',
+                        fontFamily: "'JetBrains Mono', monospace",
+                    }}>
+                        {countdown}
+                    </span>
+                </div>
+            )}
+        </div>
     );
 });
 
