@@ -1,4 +1,4 @@
-# render.yaml - Render Blueprint for NEXUS Trading Platform
+# render.yaml - Render Blueprint for Kublai Trading Platform
 # https://render.com/docs/blueprint-spec
 
 services:
@@ -6,8 +6,8 @@ services:
   # API Server (FastAPI)
   # ================================
   - type: web
-    name: nexus-api
-    env: docker
+    name: kublai-api
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
@@ -15,18 +15,14 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: BINANCE_API_KEY
-        sync: false
-      - key: BINANCE_SECRET_KEY
+      - key: GROQ_API_KEY
         sync: false
       - key: REDIS_URL
         sync: false
       - key: MONGODB_URI
         sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
+      - key: FRONTEND_URL
+        value: https://kublai.netlify.app
       - key: ENVIRONMENT
         value: production
 
@@ -34,17 +30,15 @@ services:
   # Bitcoin Worker (Background)
   # ================================
   - type: worker
-    name: nexus-btc-worker
-    env: docker
+    name: kublai-btc-worker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerCommand: python infinity_worker.py
     autoDeploy: true
     envVars:
-      - key: BINANCE_API_KEY
-        sync: false
-      - key: BINANCE_SECRET_KEY
+      - key: GROQ_API_KEY
         sync: false
       - key: REDIS_URL
         sync: false
@@ -57,17 +51,15 @@ services:
   # Altcoin Worker (Background)
   # ================================
   - type: worker
-    name: nexus-altcoin-worker
-    env: docker
+    name: kublai-altcoin-worker
+    runtime: docker
     plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerCommand: python altcoin_worker.py
     autoDeploy: true
     envVars:
-      - key: BINANCE_API_KEY
-        sync: false
-      - key: BINANCE_SECRET_KEY
+      - key: GROQ_API_KEY
         sync: false
       - key: REDIS_URL
         sync: false
