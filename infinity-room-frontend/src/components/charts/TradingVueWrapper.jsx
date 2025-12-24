@@ -209,9 +209,10 @@ const TradingVueWrapper = memo(({
             :color-text="'#787b86'"
             :color-text-hl="'#d1d4dc'"
             :color-scale="'#2a2e39'"
-            :toolbar="true"
-            :legend-buttons="['display', 'settings', 'remove']"
-            title-txt="Kublai Charts"
+            :toolbar="false"
+            :legend-buttons="[]"
+            :legend="false"
+            title-txt=""
           />
         `,
             });
@@ -272,6 +273,32 @@ const TradingVueWrapper = memo(({
                 }}
             >
                 <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+                {/* Floating Settings Button */}
+                <button
+                    onClick={() => setShowSettings(true)}
+                    style={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(19, 23, 34, 0.9)',
+                        backdropFilter: 'blur(10px)',
+                        color: '#d1d4dc',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 16,
+                        zIndex: 10,
+                    }}
+                    title="Indicadores"
+                >
+                    ⚙️
+                </button>
             </div>
 
             {/* Settings Modal */}

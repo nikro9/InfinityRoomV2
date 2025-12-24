@@ -210,11 +210,11 @@ const Landing = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
-                        {/* Animated Logo */}
+                        {/* Animated Logo - VISIBLE with original colors */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 1, ease: 'easeOut' }}
+                            initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            transition={{ duration: 1.2, ease: 'easeOut' }}
                             style={{ marginBottom: isMobile ? 24 : 40 }}
                         >
                             <motion.img
@@ -222,21 +222,21 @@ const Landing = () => {
                                 alt="Kublai"
                                 animate={{
                                     filter: [
-                                        'drop-shadow(0 0 20px rgba(237, 50, 55, 0.3))',
-                                        'drop-shadow(0 0 40px rgba(237, 50, 55, 0.6))',
-                                        'drop-shadow(0 0 20px rgba(237, 50, 55, 0.3))',
+                                        'drop-shadow(0 0 30px rgba(237, 50, 55, 0.5))',
+                                        'drop-shadow(0 0 60px rgba(237, 50, 55, 0.8))',
+                                        'drop-shadow(0 0 30px rgba(237, 50, 55, 0.5))',
                                     ],
                                 }}
-                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                                 style={{
-                                    height: isMobile ? 100 : 140,
+                                    height: isMobile ? 120 : 180,
                                     width: 'auto',
-                                    filter: 'brightness(0) invert(1)',
+                                    // No filter - show original red/black colors
                                 }}
                             />
                         </motion.div>
 
-                        {/* Badge */}
+                        {/* Badge - Now AI focused */}
                         <div style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -247,30 +247,30 @@ const Landing = () => {
                             borderRadius: 100,
                             marginBottom: isMobile ? 24 : 32,
                         }}>
-                            <Send size={14} color="#ED3237" />
+                            <Bot size={14} color="#ED3237" />
                             <span style={{ fontSize: 13, color: '#ED3237', fontWeight: 500 }}>
-                                Señales vía Telegram
+                                Consejo de 4 IAs Especializadas
                             </span>
                         </div>
 
-                        {/* Main Headline */}
+                        {/* Main Headline - AI Focus */}
                         <h1 style={{
-                            fontSize: isMobile ? 36 : 72,
+                            fontSize: isMobile ? 36 : 64,
                             fontWeight: 800,
                             lineHeight: 1.1,
                             marginBottom: isMobile ? 16 : 24,
-                            background: 'linear-gradient(135deg, #fff 0%, #888 100%)',
+                            background: 'linear-gradient(135deg, #fff 0%, #ccc 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                         }}>
-                            Señales de Trading
+                            4 Bots de IA
                             <br />
                             <span style={{
                                 background: 'linear-gradient(90deg, #ED3237, #ff6b6b)',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
                             }}>
-                                Directo a tu Telegram
+                                Debatiendo por Ti
                             </span>
                         </h1>
 
@@ -278,13 +278,16 @@ const Landing = () => {
                         <p style={{
                             fontSize: isMobile ? 16 : 20,
                             color: '#888',
-                            maxWidth: 600,
+                            maxWidth: 650,
                             margin: isMobile ? '0 auto 32px' : '0 auto 40px',
-                            lineHeight: 1.6,
+                            lineHeight: 1.7,
                             padding: '0 8px',
                         }}>
-                            Recibí alertas de trading en tiempo real con análisis de IA.
-                            Soportes, resistencias y puntos de entrada precisos.
+                            Analista de Liquidez • Analista de Setups • Analista de Momentum • Gestor de Riesgo
+                            <br />
+                            <span style={{ color: '#666', fontSize: isMobile ? 14 : 16 }}>
+                                Operando juntos para encontrar las mejores entradas en BTC y Altcoins.
+                            </span>
                         </p>
 
                         {/* CTAs */}
@@ -296,10 +299,9 @@ const Landing = () => {
                             marginBottom: isMobile ? 32 : 48,
                             padding: '0 16px',
                         }}>
-                            <a
-                                href="https://t.me/KublaiTradingBot"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            {/* Primary CTA - View Charts */}
+                            <Link
+                                to="/pivots-bitcoin"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -315,10 +317,13 @@ const Landing = () => {
                                     boxShadow: '0 0 40px rgba(237, 50, 55, 0.4)',
                                 }}
                             >
-                                <Send size={18} /> Unirse al Bot
-                            </a>
-                            <Link
-                                to="/pivots-bitcoin"
+                                <BarChart3 size={18} /> Ver Panel de Trading
+                            </Link>
+                            {/* Secondary CTA - Telegram */}
+                            <a
+                                href="https://t.me/KublaiTradingBot"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -334,8 +339,8 @@ const Landing = () => {
                                     fontWeight: 500,
                                 }}
                             >
-                                <BarChart3 size={18} /> Ver Charts en Vivo
-                            </Link>
+                                <Send size={18} /> Alertas por Telegram
+                            </a>
                         </div>
 
                         {/* Trust Signals */}
