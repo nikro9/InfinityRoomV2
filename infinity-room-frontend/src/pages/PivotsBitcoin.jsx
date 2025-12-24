@@ -1,9 +1,9 @@
 // src/pages/PivotsBitcoin.jsx
-// Kublai Trading - BTC view with KublaiChart PRO
+// Kublai Trading - BTC view with TradingVue (stable)
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import KublaiChart from '../components/charts/KublaiChart';
+import TradingVueWrapper from '../components/charts/TradingVueWrapper';
 import MobileNavBar from '../components/layout/MobileNavBar';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import {
@@ -21,21 +21,6 @@ const PivotsBitcoin = () => {
     });
     const isMobile = windowSize.width < 768;
 
-    // Simulated AI logs (will be replaced by real API)
-    const [aiLogs, setAiLogs] = useState([]);
-
-    useEffect(() => {
-        // Simulate AI thinking based on price changes
-        if (currentPrice && priceChange !== undefined) {
-            const thoughts = [
-                `Precio actual: $${currentPrice.toFixed(0)}`,
-                priceChange > 0.5 ? '📈 Momentum alcista detectado' : priceChange < -0.5 ? '📉 Presión vendedora' : '⏸️ Consolidación',
-                `Cambio: ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%`,
-            ];
-            setAiLogs(thoughts);
-        }
-    }, [currentPrice, priceChange]);
-
     useEffect(() => {
         const handleResize = () => setWindowSize({
             width: window.innerWidth,
@@ -45,10 +30,10 @@ const PivotsBitcoin = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Calculate heights - fullscreen approach
+    // Calculate heights - fullscreen
     const topBarHeight = 40;
     const mobileNavHeight = isMobile ? 56 : 0;
-    const desktopPanelWidth = isMobile ? 0 : 280;
+    const panelWidth = isMobile ? 0 : 260;
     const chartHeight = windowSize.height - topBarHeight - mobileNavHeight;
 
     return (
@@ -58,9 +43,8 @@ const PivotsBitcoin = () => {
             flexDirection: 'column',
             background: '#0b0e11',
             overflow: 'hidden',
-            paddingBottom: isMobile ? 56 : 0,
         }}>
-            {/* Compact Top Bar */}
+            {/* Top Bar */}
             <div style={{
                 height: topBarHeight,
                 display: 'flex',
@@ -148,20 +132,18 @@ const PivotsBitcoin = () => {
 
             {/* Main Content */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                {/* Chart - KublaiChart PRO - Takes full remaining space */}
+                {/* Chart - TradingVue - Full Width */}
                 <div style={{ flex: 1, height: chartHeight, minWidth: 0 }}>
-                    <KublaiChart
-                        candles={candles}
+                    <TradingVueWrapper
+                        data={candles}
                         height={chartHeight}
-                        timeframe={timeframe}
-                        onTimeframeChange={setTimeframe}
                     />
                 </div>
 
-                {/* Desktop Side Panel - Larger with AI Log */}
+                {/* Desktop Side Panel */}
                 {!isMobile && (
                     <div style={{
-                        width: desktopPanelWidth,
+                        width: panelWidth,
                         background: '#131722',
                         borderLeft: '1px solid #2a2e39',
                         display: 'flex',
@@ -192,50 +174,28 @@ const PivotsBitcoin = () => {
                             </div>
                         </div>
 
-                        {/* AI Log - Scrollable */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        {/* Analysis */}
+                        <div style={{ flex: 1, padding: '0 14px 14px' }}>
                             <div style={{
-                                padding: '10px 14px',
+                                padding: '10px 0',
                                 borderTop: '1px solid #2a2e39',
-                                borderBottom: '1px solid #2a2e39',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6
                             }}>
                                 <MessageSquare size={12} color="#787b86" />
-                                <span style={{ fontSize: 10, color: '#787b86', fontWeight: 600 }}>PENSAMIENTO IA</span>
+                                <span style={{ fontSize: 10, color: '#787b86', fontWeight: 600 }}>ANÁLISIS</span>
                             </div>
-                            <div style={{
-                                flex: 1,
-                                padding: 12,
-                                overflowY: 'auto',
-                                fontSize: 11,
-                                color: '#d1d4dc',
-                                lineHeight: 1.6,
-                            }}>
-                                {aiLogs.length > 0 ? (
-                                    aiLogs.map((log, i) => (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, x: -5 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: i * 0.1 }}
-                                            style={{
-                                                padding: '6px 8px',
-                                                background: 'rgba(255,255,255,0.03)',
-                                                borderRadius: 4,
-                                                marginBottom: 6,
-                                                borderLeft: '2px solid #ED3237',
-                                            }}
-                                        >
-                                            {log}
-                                        </motion.div>
-                                    ))
-                                ) : (
-                                    <div style={{ color: '#787b86', fontStyle: 'italic' }}>
-                                        Conectando a IA...
-                                    </div>
-                                )}
+                            <div style={{ fontSize: 11, color: '#d1d4dc', lineHeight: 1.5 }}>
+                                <p style={{ marginBottom: 8 }}>
+                                    Precio actual: <strong>${currentPrice?.toFixed(0) || '-'}</strong>
+                                </p>
+                                <p style={{ marginBottom: 8, color: priceChange >= 0 ? '#26a69a' : '#ef5350' }}>
+                                    {priceChange >= 0 ? '📈 Tendencia alcista' : '📉 Tendencia bajista'}
+                                </p>
+                                <p style={{ color: '#787b86' }}>
+                                    Cambio: {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
+                                </p>
                             </div>
                         </div>
 
@@ -251,7 +211,6 @@ const PivotsBitcoin = () => {
                                 color: '#787b86',
                                 textDecoration: 'none',
                                 fontSize: 11,
-                                transition: 'all 0.2s',
                             }}>
                                 <Home size={12} /> Dashboard
                             </Link>
