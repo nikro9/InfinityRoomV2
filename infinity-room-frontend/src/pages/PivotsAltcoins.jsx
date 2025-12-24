@@ -1,5 +1,5 @@
 // src/pages/PivotsAltcoins.jsx
-// Kublai Trading - Altcoins view with TradingVue (stable)
+// Kublai Trading - Altcoins view with TradingVue
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import TradingVueWrapper from '../components/charts/TradingVueWrapper';
@@ -19,7 +19,6 @@ const ALTCOIN_LIST = [
 
 const PivotsAltcoins = () => {
     const [selectedSymbol, setSelectedSymbol] = useState('ethusdt');
-    const [timeframe, setTimeframe] = useState('5m');
 
     const [windowSize, setWindowSize] = useState({
         width: window.innerWidth,
@@ -74,7 +73,6 @@ const PivotsAltcoins = () => {
                             borderRadius: 5,
                             color: selectedSymbol === alt.symbol ? '#ED3237' : '#787b86',
                             cursor: 'pointer',
-                            transition: 'all 0.15s ease',
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
                         }}
@@ -88,19 +86,16 @@ const PivotsAltcoins = () => {
             <AltcoinChartWrapper
                 symbol={selectedSymbol}
                 height={chartHeight}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
             />
 
-            {/* Mobile Nav */}
             {isMobile && <MobileNavBar position="bottom" />}
         </div>
     );
 };
 
 // Wrapper for WebSocket per symbol
-const AltcoinChartWrapper = ({ symbol, height, timeframe, onTimeframeChange }) => {
-    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, timeframe);
+const AltcoinChartWrapper = ({ symbol, height }) => {
+    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, '5m');
 
     return (
         <div style={{ flex: 1, position: 'relative' }}>
@@ -155,8 +150,6 @@ const AltcoinChartWrapper = ({ symbol, height, timeframe, onTimeframeChange }) =
             <TradingVueWrapper
                 data={candles}
                 height={height}
-                timeframe={timeframe}
-                onTimeframeChange={onTimeframeChange}
             />
         </div>
     );

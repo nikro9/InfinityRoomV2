@@ -1,5 +1,5 @@
 // src/pages/PivotsBitcoin.jsx
-// Kublai Trading - BTC view with TradingVue (stable)
+// Kublai Trading - BTC view with TradingVue
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -8,12 +8,11 @@ import MobileNavBar from '../components/layout/MobileNavBar';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import {
     Bot, TrendingUp, TrendingDown,
-    Wifi, WifiOff, Home, MessageSquare
+    Wifi, WifiOff, Home
 } from 'lucide-react';
 
 const PivotsBitcoin = () => {
-    const [timeframe, setTimeframe] = useState('5m');
-    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket('btcusdt', timeframe);
+    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket('btcusdt', '5m');
 
     const [windowSize, setWindowSize] = useState({
         width: window.innerWidth,
@@ -30,10 +29,9 @@ const PivotsBitcoin = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Calculate heights - fullscreen
     const topBarHeight = 40;
     const mobileNavHeight = isMobile ? 56 : 0;
-    const panelWidth = isMobile ? 0 : 260;
+    const panelWidth = isMobile ? 0 : 240;
     const chartHeight = windowSize.height - topBarHeight - mobileNavHeight;
 
     return (
@@ -55,7 +53,6 @@ const PivotsBitcoin = () => {
                 borderBottom: '1px solid #2a2e39',
                 flexShrink: 0,
             }}>
-                {/* Left: Symbol & Price */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                         width: 28,
@@ -102,7 +99,6 @@ const PivotsBitcoin = () => {
                     </div>
                 </div>
 
-                {/* Right: Connection */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -132,13 +128,11 @@ const PivotsBitcoin = () => {
 
             {/* Main Content */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                {/* Chart - TradingVue - Full Width */}
+                {/* Chart */}
                 <div style={{ flex: 1, height: chartHeight, minWidth: 0 }}>
                     <TradingVueWrapper
                         data={candles}
                         height={chartHeight}
-                        timeframe={timeframe}
-                        onTimeframeChange={setTimeframe}
                     />
                 </div>
 
@@ -152,7 +146,6 @@ const PivotsBitcoin = () => {
                         flexDirection: 'column',
                         flexShrink: 0,
                     }}>
-                        {/* Header */}
                         <div style={{
                             padding: '10px 14px',
                             borderBottom: '1px solid #2a2e39',
@@ -164,9 +157,8 @@ const PivotsBitcoin = () => {
                             <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>IA Kublai</span>
                         </div>
 
-                        {/* Levels */}
                         <div style={{ padding: 14 }}>
-                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 10, fontWeight: 600, letterSpacing: 0.5 }}>
+                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 10, fontWeight: 600 }}>
                                 NIVELES CLAVE
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -176,32 +168,8 @@ const PivotsBitcoin = () => {
                             </div>
                         </div>
 
-                        {/* Analysis */}
-                        <div style={{ flex: 1, padding: '0 14px 14px' }}>
-                            <div style={{
-                                padding: '10px 0',
-                                borderTop: '1px solid #2a2e39',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6
-                            }}>
-                                <MessageSquare size={12} color="#787b86" />
-                                <span style={{ fontSize: 10, color: '#787b86', fontWeight: 600 }}>ANÁLISIS</span>
-                            </div>
-                            <div style={{ fontSize: 11, color: '#d1d4dc', lineHeight: 1.5 }}>
-                                <p style={{ marginBottom: 8 }}>
-                                    Precio actual: <strong>${currentPrice?.toFixed(0) || '-'}</strong>
-                                </p>
-                                <p style={{ marginBottom: 8, color: priceChange >= 0 ? '#26a69a' : '#ef5350' }}>
-                                    {priceChange >= 0 ? '📈 Tendencia alcista' : '📉 Tendencia bajista'}
-                                </p>
-                                <p style={{ color: '#787b86' }}>
-                                    Cambio: {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
-                                </p>
-                            </div>
-                        </div>
+                        <div style={{ flex: 1 }} />
 
-                        {/* Nav */}
                         <div style={{ padding: 10, borderTop: '1px solid #2a2e39' }}>
                             <Link to="/dashboard" style={{
                                 display: 'flex',
@@ -221,7 +189,6 @@ const PivotsBitcoin = () => {
                 )}
             </div>
 
-            {/* Mobile Nav */}
             {isMobile && <MobileNavBar position="bottom" />}
         </div>
     );
