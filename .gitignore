@@ -1,4 +1,41 @@
+# Python
 venv/
-.env
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend)
+node_modules/
+infinity-room-frontend/node_modules/
+
+# Build
+infinity-room-frontend/dist/
+
+# Data
+data/*.pkl
+data/*.csv
+*.log
+
+# Misc
+IMPLEMENTACION/
+*.bak

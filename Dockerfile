@@ -1,23 +1,28 @@
-# 1. Usar una imagen oficial y ligera de Python como base
+# Dockerfile for NEXUS Trading Platform
+# Optimized for Render deployment
+
 FROM python:3.11-slim
 
-# 2. Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# 3. Actualizar el gestor de paquetes e instalar dependencias del sistema
-# Algunas librerías de Python las necesitan para compilarse correctamente
-RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# 4. Copiar el archivo de requerimientos e instalar las dependencias de Python
-# Esto se hace en un paso separado para aprovechar el cache de Docker
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copiar todo el resto del código del proyecto al contenedor
+# Copy application code
 COPY . .
 
-# 6. Exponer el puerto que Streamlit usa por defecto para que sea accesible
-EXPOSE 8501
+# Default port for Render
+EXPOSE 10000
 
-# Nota: No necesitamos un comando de inicio (CMD) aquí.
-# Se lo diremos directamente a Railway para cada servicio.
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:${PORT:-10000}/health || exit 1
+
+# Note: CMD is set in render.yaml for each service

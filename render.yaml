@@ -1,0 +1,77 @@
+# render.yaml - Render Blueprint for NEXUS Trading Platform
+# https://render.com/docs/blueprint-spec
+
+services:
+  # ================================
+  # API Server (FastAPI)
+  # ================================
+  - type: web
+    name: nexus-api
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: BINANCE_API_KEY
+        sync: false
+      - key: BINANCE_SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+  # ================================
+  # Bitcoin Worker (Background)
+  # ================================
+  - type: worker
+    name: nexus-btc-worker
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python infinity_worker.py
+    autoDeploy: true
+    envVars:
+      - key: BINANCE_API_KEY
+        sync: false
+      - key: BINANCE_SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+  # ================================
+  # Altcoin Worker (Background)
+  # ================================
+  - type: worker
+    name: nexus-altcoin-worker
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python altcoin_worker.py
+    autoDeploy: true
+    envVars:
+      - key: BINANCE_API_KEY
+        sync: false
+      - key: BINANCE_SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: ENVIRONMENT
+        value: production
