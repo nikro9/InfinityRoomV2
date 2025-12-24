@@ -1,5 +1,5 @@
 // src/pages/PivotsAltcoins.jsx
-// Kublai Trading - Altcoins view with native React KublaiChart
+// Kublai Trading - Altcoins view with KublaiChart PRO
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import KublaiChart from '../components/charts/KublaiChart';
@@ -8,17 +8,18 @@ import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import { TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
 
 const ALTCOIN_LIST = [
-    { symbol: 'ethusdt', label: 'ETH', color: '#627eea' },
-    { symbol: 'xrpusdt', label: 'XRP', color: '#23292f' },
-    { symbol: 'bnbusdt', label: 'BNB', color: '#f3ba2f' },
-    { symbol: 'solusdt', label: 'SOL', color: '#9945ff' },
-    { symbol: 'dogeusdt', label: 'DOGE', color: '#c2a633' },
-    { symbol: 'adausdt', label: 'ADA', color: '#0033ad' },
-    { symbol: 'ltcusdt', label: 'LTC', color: '#bfbbbb' },
+    { symbol: 'ethusdt', label: 'ETH' },
+    { symbol: 'xrpusdt', label: 'XRP' },
+    { symbol: 'bnbusdt', label: 'BNB' },
+    { symbol: 'solusdt', label: 'SOL' },
+    { symbol: 'dogeusdt', label: 'DOGE' },
+    { symbol: 'adausdt', label: 'ADA' },
+    { symbol: 'ltcusdt', label: 'LTC' },
 ];
 
 const PivotsAltcoins = () => {
     const [selectedSymbol, setSelectedSymbol] = useState('ethusdt');
+    const [timeframe, setTimeframe] = useState('5m');
 
     const [windowSize, setWindowSize] = useState({
         width: window.innerWidth,
@@ -35,12 +36,9 @@ const PivotsAltcoins = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Calculate heights
-    const topBarHeight = 48;
+    const topBarHeight = 44;
     const mobileNavHeight = isMobile ? 56 : 0;
     const chartHeight = windowSize.height - topBarHeight - mobileNavHeight;
-
-    const selectedAlt = ALTCOIN_LIST.find(a => a.symbol === selectedSymbol) || ALTCOIN_LIST[0];
 
     return (
         <div style={{
@@ -60,21 +58,20 @@ const PivotsAltcoins = () => {
                 borderBottom: '1px solid #2a2e39',
                 flexShrink: 0,
                 overflowX: 'auto',
-                gap: 4,
-                padding: '0 8px',
+                gap: 3,
+                padding: '0 6px',
             }}>
-                {/* Asset Tabs */}
                 {ALTCOIN_LIST.map(alt => (
                     <button
                         key={alt.symbol}
                         onClick={() => setSelectedSymbol(alt.symbol)}
                         style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
+                            padding: '5px 10px',
+                            fontSize: 11,
                             fontWeight: 600,
                             background: selectedSymbol === alt.symbol ? 'rgba(237, 50, 55, 0.2)' : 'transparent',
                             border: selectedSymbol === alt.symbol ? '1px solid rgba(237, 50, 55, 0.4)' : '1px solid transparent',
-                            borderRadius: 6,
+                            borderRadius: 5,
                             color: selectedSymbol === alt.symbol ? '#ED3237' : '#787b86',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
@@ -87,41 +84,43 @@ const PivotsAltcoins = () => {
                 ))}
             </div>
 
-            {/* Chart Area - Using KublaiChart (100% React) */}
-            <AltcoinChart
+            {/* Chart */}
+            <AltcoinChartWrapper
                 symbol={selectedSymbol}
                 height={chartHeight}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
             />
 
-            {/* Mobile Navigation Bar */}
+            {/* Mobile Nav */}
             {isMobile && <MobileNavBar position="bottom" />}
         </div>
     );
 };
 
-// Separate chart component to manage WebSocket per symbol
-const AltcoinChart = ({ symbol, height }) => {
-    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, '5m');
+// Wrapper for WebSocket per symbol
+const AltcoinChartWrapper = ({ symbol, height, timeframe, onTimeframeChange }) => {
+    const { candles, currentPrice, priceChange, isConnected } = useBinanceWebSocket(symbol, timeframe);
 
     return (
         <div style={{ flex: 1, position: 'relative' }}>
-            {/* Price & Connection overlay */}
+            {/* Price Badge */}
             <div style={{
                 position: 'absolute',
                 top: 8,
-                right: 70,
-                zIndex: 20,
+                right: 120,
+                zIndex: 25,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: 8,
                 background: 'rgba(19, 23, 34, 0.9)',
                 backdropFilter: 'blur(10px)',
-                padding: '6px 12px',
-                borderRadius: 8,
-                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.08)',
             }}>
                 <span style={{
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: 700,
                     color: priceChange >= 0 ? '#26a69a' : '#ef5350',
                     fontFamily: "'JetBrains Mono', monospace",
@@ -129,40 +128,35 @@ const AltcoinChart = ({ symbol, height }) => {
                     ${currentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '-'}
                 </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {priceChange >= 0 ? <TrendingUp size={12} color="#26a69a" /> : <TrendingDown size={12} color="#ef5350" />}
-                    <span style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: priceChange >= 0 ? '#26a69a' : '#ef5350',
-                    }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    {priceChange >= 0 ? <TrendingUp size={10} color="#26a69a" /> : <TrendingDown size={10} color="#ef5350" />}
+                    <span style={{ fontSize: 10, fontWeight: 600, color: priceChange >= 0 ? '#26a69a' : '#ef5350' }}>
                         {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
                     </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     {isConnected ? (
                         <>
-                            <Wifi size={10} color="#26a69a" />
+                            <Wifi size={9} color="#26a69a" />
                             <motion.div
                                 animate={{ opacity: [1, 0.3, 1] }}
                                 transition={{ duration: 1.5, repeat: Infinity }}
-                                style={{ width: 5, height: 5, background: '#26a69a', borderRadius: '50%' }}
+                                style={{ width: 4, height: 4, background: '#26a69a', borderRadius: '50%' }}
                             />
                         </>
                     ) : (
-                        <WifiOff size={10} color="#ef5350" />
+                        <WifiOff size={9} color="#ef5350" />
                     )}
                 </div>
             </div>
 
-            {/* KublaiChart - 100% React, no Vue! */}
+            {/* KublaiChart PRO */}
             <KublaiChart
                 candles={candles}
                 height={height}
-                timeframe="5m"
-                showEMA={true}
-                emaPeriod={12}
+                timeframe={timeframe}
+                onTimeframeChange={onTimeframeChange}
             />
         </div>
     );
