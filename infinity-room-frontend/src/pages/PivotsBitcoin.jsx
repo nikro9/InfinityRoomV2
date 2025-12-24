@@ -8,7 +8,7 @@ import MobileNavBar from '../components/layout/MobileNavBar';
 import { useBinanceWebSocket } from '../hooks/useBinanceWebSocket';
 import {
     Bot, TrendingUp, TrendingDown,
-    Wifi, WifiOff, Home
+    Wifi, WifiOff, Home, MessageSquare
 } from 'lucide-react';
 
 const PivotsBitcoin = () => {
@@ -21,6 +21,21 @@ const PivotsBitcoin = () => {
     });
     const isMobile = windowSize.width < 768;
 
+    // Simulated AI logs (will be replaced by real API)
+    const [aiLogs, setAiLogs] = useState([]);
+
+    useEffect(() => {
+        // Simulate AI thinking based on price changes
+        if (currentPrice && priceChange !== undefined) {
+            const thoughts = [
+                `Precio actual: $${currentPrice.toFixed(0)}`,
+                priceChange > 0.5 ? '📈 Momentum alcista detectado' : priceChange < -0.5 ? '📉 Presión vendedora' : '⏸️ Consolidación',
+                `Cambio: ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%`,
+            ];
+            setAiLogs(thoughts);
+        }
+    }, [currentPrice, priceChange]);
+
     useEffect(() => {
         const handleResize = () => setWindowSize({
             width: window.innerWidth,
@@ -30,10 +45,10 @@ const PivotsBitcoin = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Calculate heights
-    const topBarHeight = 44;
+    // Calculate heights - fullscreen approach
+    const topBarHeight = 40;
     const mobileNavHeight = isMobile ? 56 : 0;
-    const desktopPanelWidth = isMobile ? 0 : 200;
+    const desktopPanelWidth = isMobile ? 0 : 280;
     const chartHeight = windowSize.height - topBarHeight - mobileNavHeight;
 
     return (
@@ -51,35 +66,35 @@ const PivotsBitcoin = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0 10px',
+                padding: '0 12px',
                 background: '#131722',
                 borderBottom: '1px solid #2a2e39',
                 flexShrink: 0,
             }}>
                 {/* Left: Symbol & Price */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
-                        width: 24,
-                        height: 24,
+                        width: 28,
+                        height: 28,
                         borderRadius: '50%',
                         background: 'linear-gradient(135deg, #f7931a, #ffab40)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: 'white',
                     }}>
                         ₿
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>BTC</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>BTC/USDT</span>
 
                     <motion.span
                         key={currentPrice}
-                        initial={{ scale: 1.02 }}
+                        initial={{ scale: 1.03 }}
                         animate={{ scale: 1 }}
                         style={{
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: 700,
                             color: priceChange >= 0 ? '#26a69a' : '#ef5350',
                             fontFamily: "'JetBrains Mono', monospace",
@@ -91,13 +106,13 @@ const PivotsBitcoin = () => {
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 3,
-                        padding: '2px 5px',
+                        gap: 4,
+                        padding: '3px 8px',
                         background: priceChange >= 0 ? 'rgba(38, 166, 154, 0.15)' : 'rgba(239, 83, 80, 0.15)',
-                        borderRadius: 3,
+                        borderRadius: 4,
                     }}>
-                        {priceChange >= 0 ? <TrendingUp size={9} color="#26a69a" /> : <TrendingDown size={9} color="#ef5350" />}
-                        <span style={{ fontSize: 10, fontWeight: 600, color: priceChange >= 0 ? '#26a69a' : '#ef5350' }}>
+                        {priceChange >= 0 ? <TrendingUp size={12} color="#26a69a" /> : <TrendingDown size={12} color="#ef5350" />}
+                        <span style={{ fontSize: 12, fontWeight: 600, color: priceChange >= 0 ? '#26a69a' : '#ef5350' }}>
                             {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2) || '0.00'}%
                         </span>
                     </div>
@@ -107,25 +122,25 @@ const PivotsBitcoin = () => {
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
-                    padding: '2px 6px',
+                    gap: 6,
+                    padding: '4px 10px',
                     background: isConnected ? 'rgba(38, 166, 154, 0.1)' : 'rgba(239, 83, 80, 0.1)',
-                    borderRadius: 4,
+                    borderRadius: 6,
                 }}>
                     {isConnected ? (
                         <>
-                            <Wifi size={10} color="#26a69a" />
-                            <span style={{ fontSize: 9, color: '#26a69a', fontWeight: 600 }}>LIVE</span>
+                            <Wifi size={12} color="#26a69a" />
+                            <span style={{ fontSize: 10, color: '#26a69a', fontWeight: 600 }}>LIVE</span>
                             <motion.div
                                 animate={{ opacity: [1, 0.3, 1] }}
                                 transition={{ duration: 1.5, repeat: Infinity }}
-                                style={{ width: 4, height: 4, background: '#26a69a', borderRadius: '50%' }}
+                                style={{ width: 5, height: 5, background: '#26a69a', borderRadius: '50%' }}
                             />
                         </>
                     ) : (
                         <>
-                            <WifiOff size={10} color="#ef5350" />
-                            <span style={{ fontSize: 9, color: '#ef5350', fontWeight: 600 }}>OFF</span>
+                            <WifiOff size={12} color="#ef5350" />
+                            <span style={{ fontSize: 10, color: '#ef5350', fontWeight: 600 }}>OFFLINE</span>
                         </>
                     )}
                 </div>
@@ -133,7 +148,7 @@ const PivotsBitcoin = () => {
 
             {/* Main Content */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                {/* Chart - KublaiChart PRO */}
+                {/* Chart - KublaiChart PRO - Takes full remaining space */}
                 <div style={{ flex: 1, height: chartHeight, minWidth: 0 }}>
                     <KublaiChart
                         candles={candles}
@@ -143,7 +158,7 @@ const PivotsBitcoin = () => {
                     />
                 </div>
 
-                {/* Desktop Side Panel */}
+                {/* Desktop Side Panel - Larger with AI Log */}
                 {!isMobile && (
                     <div style={{
                         width: desktopPanelWidth,
@@ -152,60 +167,93 @@ const PivotsBitcoin = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         flexShrink: 0,
-                        fontSize: 11,
                     }}>
                         {/* Header */}
                         <div style={{
-                            padding: '8px 12px',
+                            padding: '10px 14px',
                             borderBottom: '1px solid #2a2e39',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 6,
+                            gap: 8,
                         }}>
-                            <Bot size={12} color="#ED3237" />
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>IA Kublai</span>
+                            <Bot size={16} color="#ED3237" />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>IA Kublai</span>
                         </div>
 
                         {/* Levels */}
-                        <div style={{ padding: 12 }}>
-                            <div style={{ fontSize: 9, color: '#787b86', marginBottom: 8, fontWeight: 600, letterSpacing: 0.5 }}>
+                        <div style={{ padding: 14 }}>
+                            <div style={{ fontSize: 10, color: '#787b86', marginBottom: 10, fontWeight: 600, letterSpacing: 0.5 }}>
                                 NIVELES CLAVE
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <LevelRow label="Resistencia" value={currentPrice ? (currentPrice * 1.02).toFixed(0) : '-'} color="#ef5350" />
                                 <LevelRow label="Precio" value={currentPrice?.toFixed(0) || '-'} color="#fff" highlight />
                                 <LevelRow label="Soporte" value={currentPrice ? (currentPrice * 0.98).toFixed(0) : '-'} color="#26a69a" />
                             </div>
                         </div>
 
-                        {/* Analysis */}
-                        <div style={{ padding: '0 12px 12px' }}>
-                            <div style={{ fontSize: 9, color: '#787b86', marginBottom: 6, fontWeight: 600 }}>
-                                ANÁLISIS
+                        {/* AI Log - Scrollable */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <div style={{
+                                padding: '10px 14px',
+                                borderTop: '1px solid #2a2e39',
+                                borderBottom: '1px solid #2a2e39',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}>
+                                <MessageSquare size={12} color="#787b86" />
+                                <span style={{ fontSize: 10, color: '#787b86', fontWeight: 600 }}>PENSAMIENTO IA</span>
                             </div>
-                            <p style={{ fontSize: 10, color: '#d1d4dc', lineHeight: 1.4 }}>
-                                {candles.length > 0
-                                    ? `${priceChange > 0 ? '🟢 Alcista' : '🔴 Bajista'} · ${candles.length} velas`
-                                    : 'Conectando...'}
-                            </p>
+                            <div style={{
+                                flex: 1,
+                                padding: 12,
+                                overflowY: 'auto',
+                                fontSize: 11,
+                                color: '#d1d4dc',
+                                lineHeight: 1.6,
+                            }}>
+                                {aiLogs.length > 0 ? (
+                                    aiLogs.map((log, i) => (
+                                        <motion.div
+                                            key={i}
+                                            initial={{ opacity: 0, x: -5 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.1 }}
+                                            style={{
+                                                padding: '6px 8px',
+                                                background: 'rgba(255,255,255,0.03)',
+                                                borderRadius: 4,
+                                                marginBottom: 6,
+                                                borderLeft: '2px solid #ED3237',
+                                            }}
+                                        >
+                                            {log}
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div style={{ color: '#787b86', fontStyle: 'italic' }}>
+                                        Conectando a IA...
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div style={{ flex: 1 }} />
-
                         {/* Nav */}
-                        <div style={{ padding: 8, borderTop: '1px solid #2a2e39' }}>
+                        <div style={{ padding: 10, borderTop: '1px solid #2a2e39' }}>
                             <Link to="/dashboard" style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 6,
-                                padding: '6px 8px',
+                                gap: 8,
+                                padding: '8px 12px',
                                 background: 'rgba(255,255,255,0.03)',
-                                borderRadius: 4,
+                                borderRadius: 6,
                                 color: '#787b86',
                                 textDecoration: 'none',
-                                fontSize: 10,
+                                fontSize: 11,
+                                transition: 'all 0.2s',
                             }}>
-                                <Home size={10} /> Dashboard
+                                <Home size={12} /> Dashboard
                             </Link>
                         </div>
                     </div>
@@ -223,12 +271,12 @@ const LevelRow = ({ label, value, color, highlight }) => (
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: highlight ? '4px 6px' : 0,
+        padding: highlight ? '6px 10px' : '4px 0',
         background: highlight ? 'rgba(255,255,255,0.05)' : 'transparent',
-        borderRadius: 3,
+        borderRadius: 4,
     }}>
-        <span style={{ fontSize: 10, color: '#787b86' }}>{label}</span>
-        <span style={{ fontSize: 11, color, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+        <span style={{ fontSize: 11, color: '#787b86' }}>{label}</span>
+        <span style={{ fontSize: 13, color, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
             ${value}
         </span>
     </div>

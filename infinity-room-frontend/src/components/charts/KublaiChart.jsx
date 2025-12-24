@@ -294,46 +294,62 @@ const KublaiChart = ({
         return () => clearInterval(interval);
     }, [candles, timeframeSec]);
 
-    // Animate last candle on tick updates
+    // Continuous smooth animation like IQ Option
     useEffect(() => {
         if (candles.length === 0) return;
 
         const lastCandle = candles[candles.length - 1];
         if (!lastCandle) return;
 
-        // Start animation from previous state to new state
-        const startCandle = animatedCandle || lastCandle;
-        const startTime = Date.now();
-        const duration = 200; // 200ms smooth transition
+        // Initialize animated candle if not exists
+        if (!animatedCandle) {
+            setAnimatedCandle({ ...lastCandle });
+            return;
+        }
+
+        // Continuous animation loop - always running
+        let running = true;
+        const lerpSpeed = 0.15; // Smoothing factor (0-1, lower = smoother)
 
         const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = easeOutCubic(progress);
+            if (!running) return;
 
-            setAnimatedCandle({
-                ...lastCandle,
-                close: lerp(startCandle.close, lastCandle.close, eased),
-                high: Math.max(startCandle.high, lerp(startCandle.high, lastCandle.high, eased)),
-                low: Math.min(startCandle.low, lerp(startCandle.low, lastCandle.low, eased)),
+            setAnimatedCandle(prev => {
+                if (!prev) return lastCandle;
+
+                // Smoothly interpolate towards target values
+                const newClose = prev.close + (lastCandle.close - prev.close) * lerpSpeed;
+                const newHigh = Math.max(prev.high, lastCandle.high);
+                const newLow = Math.min(prev.low, lastCandle.low);
+
+                // Check if we need to keep animating
+                const closeDistance = Math.abs(lastCandle.close - newClose);
+                const isSettled = closeDistance < 0.01;
+
+                if (isSettled) {
+                    return lastCandle; // Snap to final position
+                }
+
+                return {
+                    ...lastCandle,
+                    close: newClose,
+                    high: newHigh,
+                    low: newLow,
+                };
             });
 
-            if (progress < 1) {
-                animationRef.current = requestAnimationFrame(animate);
-            }
+            animationRef.current = requestAnimationFrame(animate);
         };
 
-        if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
-        }
         animationRef.current = requestAnimationFrame(animate);
 
         return () => {
+            running = false;
             if (animationRef.current) {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [candles.length > 0 ? candles[candles.length - 1]?.close : null]);
+    }, [candles]);
 
     // Calculate chart data
     const chartData = useMemo(() => {
@@ -536,14 +552,9 @@ const KublaiChart = ({
             ctx.fillStyle = isUp ? colors.upWick : colors.downWick;
             ctx.fillRect(x + (scaledCandleWidth - wickWidth) / 2, wickTop, wickWidth, wickBottom - wickTop);
 
-            // Body with glow for last candle
-            if (isLast) {
-                ctx.shadowColor = isUp ? colors.up : colors.down;
-                ctx.shadowBlur = 8;
-            }
+            // Body
             ctx.fillStyle = isUp ? colors.up : colors.down;
             ctx.fillRect(x, bodyTop, scaledCandleWidth, bodyHeight);
-            ctx.shadowBlur = 0;
         });
 
         // Draw current price line
