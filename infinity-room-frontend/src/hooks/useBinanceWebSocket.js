@@ -52,23 +52,58 @@ export const useBinanceWebSocket = (symbol = 'btcusdt', interval = '5m') => {
         }
     }, [symbol, interval]);
 
-    // Connect to WebSocket
+    // Connect to WebSocket (kline + aggTrade for tick-by-tick updates)
     const connectWebSocket = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             return;
         }
 
-        const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
-        const ws = new WebSocket(`${BINANCE_WS_URL}/${streamName}`);
+        // Combined stream: klines for candles + aggTrade for tick-by-tick price
+        const streams = [
+            `${symbol.toLowerCase()}@kline_${interval}`,
+            `${symbol.toLowerCase()}@aggTrade`
+        ].join('/');
+
+        const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
 
         ws.onopen = () => {
-            console.log(`[Binance WS] Connected to ${symbol}@${interval}`);
+            console.log(`[Binance WS] Connected to ${symbol} (kline + aggTrade)`);
             setIsConnected(true);
         };
 
         ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            const message = JSON.parse(event.data);
+            const data = message.data;
+            if (!data) return;
 
+            // Handle aggTrade (tick-by-tick updates - every trade!)
+            if (data.e === 'aggTrade') {
+                const price = parseFloat(data.p);
+                setCurrentPrice(price);
+
+                // Update the last candle's close price in real-time
+                setCandles(prevCandles => {
+                    if (prevCandles.length === 0) return prevCandles;
+                    const lastCandle = { ...prevCandles[prevCandles.length - 1] };
+
+                    // Calculate price change
+                    if (prevCandles.length > 1) {
+                        const prevClosedCandle = prevCandles[prevCandles.length - 2];
+                        const change = ((price - prevClosedCandle.close) / prevClosedCandle.close) * 100;
+                        setPriceChange(change);
+                    }
+
+                    // Update last candle with new close, high, low
+                    lastCandle.close = price;
+                    lastCandle.high = Math.max(lastCandle.high, price);
+                    lastCandle.low = Math.min(lastCandle.low, price);
+
+                    return [...prevCandles.slice(0, -1), lastCandle];
+                });
+                return;
+            }
+
+            // Handle kline (candle updates)
             if (data.e === 'kline') {
                 const kline = data.k;
                 const newCandle = {
@@ -88,7 +123,7 @@ export const useBinanceWebSocket = (symbol = 'btcusdt', interval = '5m') => {
 
                     const lastCandle = prevCandles[prevCandles.length - 1];
 
-                    // Calculate price change from previous closed candle
+                    // Calculate price change
                     if (prevCandles.length > 1) {
                         const prevClosedCandle = prevCandles[prevCandles.length - 2];
                         const change = ((newCandle.close - prevClosedCandle.close) / prevClosedCandle.close) * 100;
@@ -101,12 +136,7 @@ export const useBinanceWebSocket = (symbol = 'btcusdt', interval = '5m') => {
                     }
 
                     // New candle started
-                    if (kline.x) {
-                        return [...prevCandles, newCandle].slice(-200); // Keep last 200 candles
-                    }
-
-                    // Update current forming candle
-                    return [...prevCandles.slice(0, -1), newCandle];
+                    return [...prevCandles, newCandle].slice(-200);
                 });
             }
         };
