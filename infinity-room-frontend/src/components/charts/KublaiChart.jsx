@@ -27,15 +27,20 @@ const CHART_CONFIG = {
         textHighlight: '#d1d4dc',
         priceLine: 'rgba(41, 98, 255, 0.8)',
         ema: 'rgba(247, 147, 26, 0.8)',
-        rsiLine: '#2962ff',
+        vwap: '#2962ff',
+        pivotResistance: '#ef5350',
+        pivotSupport: '#26a69a',
+        rsiLine: '#7E57C2',
         rsiOverbought: 'rgba(239, 83, 80, 0.3)',
         rsiOversold: 'rgba(38, 166, 154, 0.3)',
         volumeUp: 'rgba(38, 166, 154, 0.4)',
         volumeDown: 'rgba(239, 83, 80, 0.4)',
+        bos: '#707276',
+        choch: '#f7931a',
     },
-    padding: { top: 10, right: 55, bottom: 25, left: 5 },
-    rsiHeight: 80,
-    volumeHeight: 50,
+    padding: { top: 10, right: 60, bottom: 25, left: 5 },
+    rsiHeight: 70,
+    volumeHeight: 40,
 };
 
 const TIMEFRAMES = [
@@ -115,6 +120,53 @@ const calculateRSI = (closes, period = 14) => {
     return rsi;
 };
 
+// Calculate VWAP (Volume Weighted Average Price)
+const calculateVWAP = (candles) => {
+    if (!candles || candles.length === 0) return [];
+
+    let cumVolume = 0;
+    let cumVWAP = 0;
+
+    return candles.map((c, idx) => {
+        const typicalPrice = (c.high + c.low + c.close) / 3;
+        const volume = c.volume || 1;
+
+        // Reset daily (every 288 5min candles)
+        if (idx % 288 === 0) {
+            cumVolume = 0;
+            cumVWAP = 0;
+        }
+
+        cumVolume += volume;
+        cumVWAP += typicalPrice * volume;
+
+        return cumVolume > 0 ? cumVWAP / cumVolume : null;
+    });
+};
+
+// Calculate Pivot Levels (Support/Resistance)
+const calculatePivots = (candles, period = 80) => {
+    if (!candles || candles.length === 0) return { resistance: [], support: [] };
+
+    const resistance = [];
+    const support = [];
+
+    for (let i = 0; i < candles.length; i++) {
+        if (i < period) {
+            resistance.push(null);
+            support.push(null);
+        } else {
+            const slice = candles.slice(i - period, i + 1);
+            const high = Math.max(...slice.map(c => c.high));
+            const low = Math.min(...slice.map(c => c.low));
+            resistance.push(high);
+            support.push(low);
+        }
+    }
+
+    return { resistance, support };
+};
+
 const lerp = (start, end, t) => start + (end - start) * t;
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -150,7 +202,9 @@ const KublaiChart = ({
     // Indicator visibility
     const [indicators, setIndicators] = useState({
         ema: { enabled: true, period: 12 },
-        rsi: { enabled: true, period: 14 },
+        vwap: { enabled: false },
+        pivots: { enabled: true, period: 80 },
+        rsi: { enabled: false, period: 14 },
         volume: { enabled: true },
     });
 
@@ -307,12 +361,19 @@ const KublaiChart = ({
         const volumes = displayCandles.map(c => c.volume || 0);
         const maxVolume = Math.max(...volumes) || 1;
 
+        // Calculate pivot levels
+        const pivots = indicators.pivots.enabled
+            ? calculatePivots(displayCandles, indicators.pivots.period)
+            : { resistance: [], support: [] };
+
         return {
             candles: displayCandles,
             maxPrice: paddedMax,
             minPrice: paddedMin,
             priceRange: paddedRange,
             ema: indicators.ema.enabled ? calculateEMA(closes, indicators.ema.period) : [],
+            vwap: indicators.vwap.enabled ? calculateVWAP(displayCandles) : [],
+            pivots,
             rsi: indicators.rsi.enabled ? calculateRSI(closes, indicators.rsi.period) : [],
             volumes,
             maxVolume,
@@ -397,6 +458,65 @@ const KublaiChart = ({
                 else ctx.lineTo(x, y);
             });
             ctx.stroke();
+        }
+
+        // Draw VWAP
+        if (indicators.vwap.enabled && chartData.vwap.length > 0) {
+            ctx.strokeStyle = colors.vwap;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+
+            chartData.vwap.forEach((val, i) => {
+                if (val === null) return;
+                const x = startX + i * candleFullWidth + scaledCandleWidth / 2;
+                const y = priceToY(val);
+                if (i === 0 || chartData.vwap[i - 1] === null) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+
+        // Draw Pivot levels (horizontal lines for support/resistance)
+        if (indicators.pivots.enabled && chartData.pivots.resistance.length > 0) {
+            const lastIdx = chartData.candles.length - 1;
+            const resistance = chartData.pivots.resistance[lastIdx];
+            const support = chartData.pivots.support[lastIdx];
+
+            if (resistance) {
+                const y = priceToY(resistance);
+                ctx.strokeStyle = colors.pivotResistance;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Label
+                ctx.fillStyle = colors.pivotResistance;
+                ctx.font = '9px system-ui';
+                ctx.textAlign = 'left';
+                ctx.fillText(`R ${formatPrice(resistance)}`, padding.left + 5, y - 3);
+            }
+
+            if (support) {
+                const y = priceToY(support);
+                ctx.strokeStyle = colors.pivotSupport;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Label
+                ctx.fillStyle = colors.pivotSupport;
+                ctx.font = '9px system-ui';
+                ctx.textAlign = 'left';
+                ctx.fillText(`S ${formatPrice(support)}`, padding.left + 5, y + 10);
+            }
         }
 
         // Draw candles
@@ -805,13 +925,45 @@ const KublaiChart = ({
                                 </button>
 
                                 <button
+                                    onClick={() => toggleIndicator('vwap')}
+                                    style={{
+                                        padding: '3px 6px',
+                                        background: indicators.vwap.enabled ? 'rgba(41, 98, 255, 0.2)' : 'transparent',
+                                        border: 'none',
+                                        borderRadius: 3,
+                                        color: indicators.vwap.enabled ? '#2962ff' : '#787b86',
+                                        fontSize: 10,
+                                        fontWeight: 500,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    VWAP
+                                </button>
+
+                                <button
+                                    onClick={() => toggleIndicator('pivots')}
+                                    style={{
+                                        padding: '3px 6px',
+                                        background: indicators.pivots.enabled ? 'rgba(38, 166, 154, 0.2)' : 'transparent',
+                                        border: 'none',
+                                        borderRadius: 3,
+                                        color: indicators.pivots.enabled ? '#26a69a' : '#787b86',
+                                        fontSize: 10,
+                                        fontWeight: 500,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    S/R
+                                </button>
+
+                                <button
                                     onClick={() => toggleIndicator('rsi')}
                                     style={{
                                         padding: '3px 6px',
-                                        background: indicators.rsi.enabled ? 'rgba(41, 98, 255, 0.2)' : 'transparent',
+                                        background: indicators.rsi.enabled ? 'rgba(126, 87, 194, 0.2)' : 'transparent',
                                         border: 'none',
                                         borderRadius: 3,
-                                        color: indicators.rsi.enabled ? '#2962ff' : '#787b86',
+                                        color: indicators.rsi.enabled ? '#7E57C2' : '#787b86',
                                         fontSize: 10,
                                         fontWeight: 500,
                                         cursor: 'pointer',
