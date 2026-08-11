@@ -2,6 +2,8 @@
 
 > **Note:** This is a personal, work-in-progress (WIP) project. It is actively being developed as a proof-of-concept for an AI-driven trading infrastructure. Some features might be in active development, experimental, or not yet 100% functional.
 
+**🌟 Live Demo:** A real-time, working demo of the dashboard is available at [https://kublai.netlify.app/](https://kublai.netlify.app/)
+
 Kublai is an AI-powered cryptocurrency trading and market analysis platform. It leverages multiple LLMs (Large Language Models) to analyze market structure, simulate deterministic trading strategies, and provide a unified dashboard for real-time monitoring of crypto assets.
 
 ## 🎯 What Problem Does It Solve?
