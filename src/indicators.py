@@ -1,7 +1,6 @@
 # src/indicators.py
 import pandas as pd
 import pandas_ta as ta
-from src import config
 
 def calculate_ema(close_prices: pd.Series, period: int) -> pd.Series:
     """
@@ -9,20 +8,22 @@ def calculate_ema(close_prices: pd.Series, period: int) -> pd.Series:
     """
     return ta.ema(close_prices, length=period)
 
-
 def calculate_rsi(close_prices: pd.Series, period: int) -> pd.Series:
     """
     Calcula el Índice de Fuerza Relativa (RSI) usando un período explícito.
     """
     return ta.rsi(close_prices, length=period)
 
-
-def calculate_sml_channel(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_donchian_channel(df: pd.DataFrame, period: int = 400) -> pd.DataFrame:
     """
-    Calcula los niveles del SML Channel replicando la lógica de Pine Script.
-    El SML High es simplemente el 'high' de la vela y el SML Low es el 'low'.
+    Calcula los Canales de Donchian (Highest High / Lowest Low).
     """
-    # Esta es la corrección clave basada en tu código de Pine Script
-    df['sml_high'] = df['high']
-    df['sml_low'] = df['low']
+    df['donchian_high'] = df['high'].rolling(window=period).max()
+    df['donchian_low'] = df['low'].rolling(window=period).min()
     return df
+
+def calculate_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """
+    Calcula el Average True Range (ATR).
+    """
+    return ta.atr(df['high'], df['low'], df['close'], length=period)

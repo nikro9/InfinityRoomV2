@@ -272,7 +272,7 @@ def _run_btc_worker():
     try:
         from src import config
         from src.market_data import get_historical_data
-        from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
+        from src.indicators import calculate_ema, calculate_rsi, calculate_donchian_channel, calculate_atr
         from src.ai_model import get_infinity_room_decision
         from src.notifications import send_telegram_message
         import pandas as pd
@@ -295,20 +295,15 @@ def _run_btc_worker():
                 df.set_index('timestamp', inplace=True)
 
                 # Calculate indicators
-                required = config.EMA_TREND_PERIOD + 5
+                required = 405
                 if len(df) >= required:
                     df['ema_12'] = calculate_ema(df['close'], period=config.EMA_FAST_PERIOD)
                     df['rsi_14'] = calculate_rsi(df['close'], period=config.RSI_PERIOD)
-                    df.dropna(inplace=True)
-
-                    df_sml = df.resample(STRATEGY_CONFIG['sml_timeframe'], origin=STRATEGY_CONFIG['sml_anchor_time']).agg(
-                        {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'}
-                    ).dropna()
-                    df_sml = calculate_sml_channel(df_sml)
-
-                    df_merged = pd.merge_asof(df.sort_index(), df_sml[['sml_high', 'sml_low']], 
-                                              left_index=True, right_index=True, direction='backward')
-                    df_merged.dropna(inplace=True)
+                    
+                    df = calculate_donchian_channel(df, period=400)
+                    df['atr_14'] = calculate_atr(df, period=14)
+                    
+                    df_merged = df.dropna().copy()
 
                     if len(df_merged) >= 40:
                         mock_order_flow = {"buy_volume": 0, "sell_volume": 0, "delta": 0, "trade_count": 0}
@@ -376,7 +371,7 @@ def _run_altcoin_worker():
     try:
         from src import config
         from src.market_data import get_historical_data
-        from src.indicators import calculate_ema, calculate_rsi, calculate_sml_channel
+        from src.indicators import calculate_ema, calculate_rsi, calculate_donchian_channel, calculate_atr
         from src.ai_model import get_infinity_room_decision
         from src.notifications import send_telegram_message
         import pandas as pd
@@ -400,22 +395,17 @@ def _run_altcoin_worker():
                 df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
                 df.set_index('timestamp', inplace=True)
 
-                required = config.EMA_TREND_PERIOD + 5
+                required = 405
                 if len(df) < required:
                     continue
 
                 df['ema_12'] = calculate_ema(df['close'], period=config.EMA_FAST_PERIOD)
                 df['rsi_14'] = calculate_rsi(df['close'], period=config.RSI_PERIOD)
-                df.dropna(inplace=True)
+                
+                df = calculate_donchian_channel(df, period=400)
+                df['atr_14'] = calculate_atr(df, period=14)
 
-                df_sml = df.resample(STRATEGY_CONFIG['sml_timeframe'], origin=STRATEGY_CONFIG['sml_anchor_time']).agg(
-                    {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'}
-                ).dropna()
-                df_sml = calculate_sml_channel(df_sml)
-
-                df_merged = pd.merge_asof(df.sort_index(), df_sml[['sml_high', 'sml_low']],
-                                          left_index=True, right_index=True, direction='backward')
-                df_merged.dropna(inplace=True)
+                df_merged = df.dropna().copy()
                 if len(df_merged) < 40:
                     continue
 

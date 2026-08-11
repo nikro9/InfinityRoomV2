@@ -37,21 +37,21 @@ Analiza los datos de Order Flow y devuelve tu veredicto.
 
 # --- ROL 2: ANALISTA TÉCNICO 1 (EXPERTO EN ENTRADAS - Llama3 70b) ---
 ENTRY_ANALYST_PROMPT = """
-Actúa como "Analista de Setups". Eres un experto en la estrategia de scalping de reversión SML. Tu única misión es identificar setups de entrada de alta probabilidad.
+Actúa como "Analista de Setups". Eres un experto en la estrategia "PUPU 5m - ZCoinTV Style". Tu única misión es identificar setups de entrada de alta probabilidad.
 
-**TU ESTRATEGIA (REVERSIÓN SML):**
--   **Setup LONG:** El precio (`low`) toca `sml_low` Y se forma una divergencia alcista en el RSI.
--   **Setup SHORT:** El precio (`high`) toca `sml_high` Y se forma una divergencia bajista en el RSI.
+**TU ESTRATEGIA (PUPU 5m):**
+-   **Setup LONG (Toma de Liquidez Inferior):** El precio (`low`) debe haber tocado o caído por debajo del `donchian_low` (que representa el mínimo de 400 periodos) en alguna de las últimas 20 velas. Luego, debes esperar a que la vela actual o reciente cierre POR ENCIMA de la `ema_12`.
+-   **Setup SHORT (Toma de Liquidez Superior):** El precio (`high`) debe haber tocado o superado el `donchian_high` (que representa el máximo de 400 periodos) en alguna de las últimas 20 velas. Luego, debes esperar a que la vela actual o reciente cierre POR DEBAJO de la `ema_12`.
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
 {
   "signal": "POTENTIAL_LONG" | "POTENTIAL_SHORT" | "IDLE",
-  "reasoning": "Tu análisis conciso del setup técnico.",
+  "reasoning": "Tu análisis conciso del setup técnico indicando si hubo barrido de liquidez y cierre de EMA.",
   "trigger_price": null | float
 }
 ```
-Si identificas un setup, devuelve la señal potencial y el precio de la `ema_12` como `trigger_price`. Si no, devuelve "IDLE".
+Si identificas un setup, devuelve la señal potencial y el precio actual de la `ema_12` como `trigger_price` (para usarse como límite). Si no hay setup válido, devuelve "IDLE".
 """
 
 # --- ROL 3: ANALISTA TÉCNICO 2 (CONFIRMADOR DE MOMENTUM - Gemma) ---
@@ -78,13 +78,13 @@ Actúa como "Gestor de Riesgo". Eres el filtro final y tu palabra es ley. Eres p
 
 **TU ANÁLISIS:**
 1.  **Recibes una propuesta de trade final y el consenso de los analistas.**
-2.  **Calcula los Parámetros:** Usando las fórmulas estrictas, calcula el SL y TP.
+2.  **Calcula los Parámetros:** Usa el ATR proporcionado en la propuesta para el Stop Loss.
 3.  **Verifica el Ratio:** Asegúrate de que el ratio riesgo/beneficio sea 1:1.7.
 4.  **Toma la Decisión Final:** Responde **únicamente** con un objeto JSON.
 
 **FÓRMULAS DE CÁLCULO:**
--   **Para un LONG:** `stop_loss` = `sml_low_touch` * (1 - 0.0001). `risk` = `entry_price` - `stop_loss`. `take_profit` = `entry_price` + (`risk` * 1.7).
--   **Para un SHORT:** `stop_loss` = `sml_high_touch` * (1 + 0.0001). `risk` = `stop_loss` - `entry_price`. `take_profit` = `entry_price` - (`risk` * 1.7).
+-   **Para un LONG:** `stop_loss` = `pivot_touch_price` - `atr_value`. `risk` = `entry_price` - `stop_loss`. `take_profit` = `entry_price` + (`risk` * 1.7).
+-   **Para un SHORT:** `stop_loss` = `pivot_touch_price` + `atr_value`. `risk` = `stop_loss` - `entry_price`. `take_profit` = `entry_price` - (`risk` * 1.7).
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
@@ -148,11 +148,11 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
     if setup_signal == 'POTENTIAL_LONG' and momentum_confirmation == 'CONFIRMED' and liquidity_sentiment in ['BULLISH', 'NEUTRAL']:
         print("✅ Consenso preliminar para LONG.")
         consensus_reasoning = f"Setup: {full_analysis['entry_setup'].get('reasoning')}. Momentum: {full_analysis['momentum'].get('reasoning')}. Liquidez: {full_analysis['liquidity'].get('reasoning')}."
-        proposal_to_risk_manager = {"type": "LONG", "entry_price": df.iloc[-1]['close'], "sml_low_touch": df.iloc[-1]['sml_low']}
+        proposal_to_risk_manager = {"type": "LONG", "entry_price": df.iloc[-1]['close'], "pivot_touch_price": df.iloc[-1]['donchian_low'], "atr_value": df.iloc[-1]['atr_14']}
     elif setup_signal == 'POTENTIAL_SHORT' and momentum_confirmation == 'CONFIRMED' and liquidity_sentiment in ['BEARISH', 'NEUTRAL']:
         print("✅ Consenso preliminar para SHORT.")
         consensus_reasoning = f"Setup: {full_analysis['entry_setup'].get('reasoning')}. Momentum: {full_analysis['momentum'].get('reasoning')}. Liquidez: {full_analysis['liquidity'].get('reasoning')}."
-        proposal_to_risk_manager = {"type": "SHORT", "entry_price": df.iloc[-1]['close'], "sml_high_touch": df.iloc[-1]['sml_high']}
+        proposal_to_risk_manager = {"type": "SHORT", "entry_price": df.iloc[-1]['close'], "pivot_touch_price": df.iloc[-1]['donchian_high'], "atr_value": df.iloc[-1]['atr_14']}
 
     if proposal_to_risk_manager:
         try:
