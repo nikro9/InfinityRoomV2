@@ -1,14 +1,16 @@
 // src/pages/ChatIA.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlowCard, LoadingSpinner, StatusBadge } from '../components/shared';
-import { useChatLogs } from '../hooks/useMockData';
-import { MessageSquare, Trash2, RefreshCw } from 'lucide-react';
+import { chatApi } from '../services/api';
+import { MessageSquare, Trash2 } from 'lucide-react';
 
 const CHAT_CHANNELS = [
     { id: 'btc', name: 'Consejo Infinity (BTC)' },
-    { id: 'eth', name: 'Altcoins (ETHUSDT)' },
-    { id: 'sol', name: 'Altcoins (SOLUSDT)' },
+    { id: 'ethusdt', name: 'Altcoins (ETH/USDT)' },
+    { id: 'solusdt', name: 'Altcoins (SOL/USDT)' },
+    { id: 'xrpusdt', name: 'Altcoins (XRP/USDT)' },
+    { id: 'bnbusdt', name: 'Altcoins (BNB/USDT)' },
 ];
 
 // Parse and format AI analysis messages
@@ -16,12 +18,12 @@ const formatAnalysis = (content) => {
     const parts = [];
 
     // Split by analyst sections
-    const sections = content.split(/(\*\*Analista.*?\*\*|\*\*DECISIÓN FINAL.*?\*\*)/);
+    const sections = content.split(/(\*\*Analista.*?\*\*|\*\*DECISI[ÓO]N.*?\*\*)/);
 
     sections.forEach((section, idx) => {
         if (!section.trim()) return;
 
-        if (section.startsWith('**Analista') || section.startsWith('**DECISIÓN')) {
+        if (section.startsWith('**Analista') || section.startsWith('**DECISI')) {
             parts.push({ type: 'header', content: section.replace(/\*\*/g, '') });
         } else {
             // Try to parse JSON
@@ -43,8 +45,6 @@ const formatAnalysis = (content) => {
 };
 
 const AnalysisCard = ({ data }) => {
-    const keys = Object.keys(data);
-
     return (
         <div
             className="card mb-sm"
@@ -64,8 +64,8 @@ const AnalysisCard = ({ data }) => {
                     <div>
                         <span className="text-muted text-xs">Señal:</span>
                         <span className="text-mono" style={{
-                            color: data.signal === 'LONG' ? 'var(--success)' :
-                                data.signal === 'SHORT' ? 'var(--danger)' : 'var(--warning)'
+                            color: data.signal === 'LONG' || data.signal === 'BUY' ? 'var(--success)' :
+                                data.signal === 'SHORT' || data.signal === 'SELL' ? 'var(--danger)' : 'var(--warning)'
                         }}>
                             {` ${data.signal}`}
                         </span>
@@ -102,7 +102,7 @@ const AnalysisCard = ({ data }) => {
 };
 
 const ChatMessage = ({ entry }) => {
-    const lines = entry.content.split('\n\n');
+    const lines = typeof entry === 'string' ? entry.split('\n\n') : (entry.content || "").split('\n\n');
     const header = lines[0];
     const body = lines.slice(1).join('\n\n');
     const parts = formatAnalysis(body);
@@ -155,11 +155,32 @@ const ChatMessage = ({ entry }) => {
 
 const ChatIA = () => {
     const [selectedChannel, setSelectedChannel] = useState('btc');
-    const { logs, isLoading } = useChatLogs();
+    const [logs, setLogs] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchChatLogs = async () => {
+        try {
+            const res = await chatApi.getLogs(selectedChannel, 50);
+            if (res && res.items) {
+                setLogs(res.items);
+            }
+        } catch (error) {
+            console.error("Error fetching chat logs:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        setIsLoading(true);
+        fetchChatLogs();
+        const interval = setInterval(fetchChatLogs, 15000); // Poll every 15s
+        return () => clearInterval(interval);
+    }, [selectedChannel]);
 
     const handleClearChat = () => {
-        // Will call API when connected
-        console.log('Clearing chat for channel:', selectedChannel);
+        console.log('Clearing chat display...');
+        setLogs([]);
     };
 
     return (
@@ -174,7 +195,7 @@ const ChatIA = () => {
                     <h1 className="text-display aurora-text" style={{ fontSize: '2rem' }}>
                         💬 Chat con IA
                     </h1>
-                    <p className="text-muted">Revisa el razonamiento conversacional de los diferentes workers</p>
+                    <p className="text-muted">Revisa el razonamiento conversacional de los diferentes workers en tiempo real</p>
                 </div>
             </div>
 
@@ -207,7 +228,7 @@ const ChatIA = () => {
             {/* Chat Messages */}
             <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 {isLoading ? (
-                    <LoadingSpinner text="Cargando mensajes..." />
+                    <LoadingSpinner text="Cargando mensajes en tiempo real..." />
                 ) : logs.length === 0 ? (
                     <motion.div
                         className="card text-center p-xl"

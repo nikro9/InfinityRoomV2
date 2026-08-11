@@ -1,22 +1,43 @@
 // src/pages/LogActividad.jsx
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GlowCard, LoadingSpinner } from '../components/shared';
-import { useTrades } from '../hooks/useMockData';
+import { tradesApi } from '../services/api';
 import { ScrollText, TrendingUp, TrendingDown } from 'lucide-react';
 
-// Mock activity log entries
-const mockActivityLog = [
-    '[2024-12-20 14:30:15] Análisis completado para BTC/USDT - Señal LONG detectada',
-    '[2024-12-20 14:25:00] Divergencia alcista identificada en RSI',
-    '[2024-12-20 14:20:45] Precio tocando nivel SML inferior',
-    '[2024-12-20 14:15:30] Worker BTC iniciado correctamente',
-    '[2024-12-20 14:10:00] Conectando con Redis...',
-    '[2024-12-19 10:15:22] Trade propuesto: SELL @ 102,000 | SL: 102,800 | TP: 100,500',
-    '[2024-12-19 10:10:00] Análisis completado para BTC/USDT - Señal SHORT detectada',
-];
-
 const LogActividad = () => {
-    const { trades, isLoading } = useTrades();
+    const [trades, setTrades] = useState([]);
+    const [activityLog, setActivityLog] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchData = async () => {
+        try {
+            const [tradesRes, logsRes] = await Promise.all([
+                tradesApi.getTrades(),
+                tradesApi.getActivityLog()
+            ]);
+            
+            if (tradesRes && tradesRes.trades) {
+                // Filter out null proposals just in case
+                setTrades(tradesRes.trades.filter(t => t && t.type));
+            }
+            if (logsRes && logsRes.log) {
+                // Map the logs correctly since backend returns {asset: "...", entry: "[Timestamp] - reasoning"}
+                setActivityLog(logsRes.log);
+            }
+        } catch (error) {
+            console.error("Error fetching activity data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+        // Setup polling every 30 seconds
+        const interval = setInterval(fetchData, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <motion.div
@@ -29,7 +50,7 @@ const LogActividad = () => {
                 <h1 className="text-display aurora-text" style={{ fontSize: '2rem' }}>
                     📜 Log de Actividad
                 </h1>
-                <p className="text-muted">Historial de decisiones de la IA y propuestas de trade generadas</p>
+                <p className="text-muted">Historial de decisiones de la IA y propuestas de trade generadas (Tiempo Real)</p>
             </div>
 
             {/* Trades Section */}
@@ -51,7 +72,7 @@ const LogActividad = () => {
                             <table className="table">
                                 <thead>
                                     <tr>
-                                        <th>Timestamp</th>
+                                        <th>Activo</th>
                                         <th>Tipo</th>
                                         <th>Precio de Entrada</th>
                                         <th>Stop Loss</th>
@@ -66,27 +87,27 @@ const LogActividad = () => {
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: idx * 0.1 }}
                                         >
-                                            <td className="text-mono text-sm">{trade.timestamp}</td>
+                                            <td className="text-mono text-sm font-bold">{trade.asset}</td>
                                             <td>
                                                 <span
                                                     className="status-indicator"
                                                     style={{
-                                                        background: trade.type === 'BUY'
+                                                        background: trade.type === 'BUY' || trade.type === 'LONG'
                                                             ? 'rgba(0, 200, 83, 0.15)'
                                                             : 'rgba(255, 82, 82, 0.15)',
-                                                        color: trade.type === 'BUY' ? 'var(--success)' : 'var(--danger)'
+                                                        color: trade.type === 'BUY' || trade.type === 'LONG' ? 'var(--success)' : 'var(--danger)'
                                                     }}
                                                 >
-                                                    {trade.type === 'BUY' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                                    {trade.type === 'BUY' || trade.type === 'LONG' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                                     {trade.type}
                                                 </span>
                                             </td>
-                                            <td className="text-mono">${trade.entry_price.toLocaleString()}</td>
+                                            <td className="text-mono">${trade.entry_price?.toLocaleString()}</td>
                                             <td className="text-mono" style={{ color: 'var(--danger)' }}>
-                                                ${trade.stop_loss.toLocaleString()}
+                                                ${trade.stop_loss?.toLocaleString()}
                                             </td>
                                             <td className="text-mono" style={{ color: 'var(--success)' }}>
-                                                ${trade.take_profit.toLocaleString()}
+                                                ${trade.take_profit?.toLocaleString()}
                                             </td>
                                         </motion.tr>
                                     ))}
@@ -113,26 +134,31 @@ const LogActividad = () => {
                             fontSize: '0.875rem'
                         }}
                     >
-                        {mockActivityLog.length === 0 ? (
+                        {isLoading ? (
+                             <LoadingSpinner text="Cargando logs..." />
+                        ) : activityLog.length === 0 ? (
                             <p className="text-muted text-center p-lg">
                                 Aún no hay registros en el log de la IA.
                             </p>
                         ) : (
-                            mockActivityLog.map((log, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: idx * 0.05 }}
-                                    style={{
-                                        padding: 'var(--space-sm) 0',
-                                        borderBottom: '1px solid var(--border-color)',
-                                        color: log.includes('Señal') ? 'var(--accent-secondary)' : 'var(--text-secondary)'
-                                    }}
-                                >
-                                    {log}
-                                </motion.div>
-                            ))
+                            activityLog.map((logObj, idx) => {
+                                const logStr = typeof logObj === 'string' ? logObj : `${logObj.asset} | ${logObj.entry}`;
+                                return (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        style={{
+                                            padding: 'var(--space-sm) 0',
+                                            borderBottom: '1px solid var(--border-color)',
+                                            color: logStr.includes('Señal') || logStr.includes('LONG') || logStr.includes('SHORT') ? 'var(--accent-secondary)' : 'var(--text-secondary)'
+                                        }}
+                                    >
+                                        {logStr}
+                                    </motion.div>
+                                );
+                            })
                         )}
                     </div>
                 </GlowCard>
