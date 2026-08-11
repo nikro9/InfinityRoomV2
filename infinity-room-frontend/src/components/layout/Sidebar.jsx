@@ -77,24 +77,6 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
             filter: 'brightness(0) invert(1)',
           }}
         />
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.span
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: '#ED3237',
-                whiteSpace: 'nowrap',
-                letterSpacing: '0.5px'
-              }}
-            >
-              KUBLAI
-            </motion.span>
-          )}
-        </AnimatePresence>
       </NavLink>
 
       {/* Navigation */}

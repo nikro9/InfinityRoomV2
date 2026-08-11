@@ -130,9 +130,6 @@ const MobileNavBar = ({ position = 'bottom' }) => {
                                     alt="Kublai"
                                     style={{ height: 24 }}
                                 />
-                                <span style={{ fontSize: 16, fontWeight: 700, color: '#ED3237' }}>
-                                    Kublai
-                                </span>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
