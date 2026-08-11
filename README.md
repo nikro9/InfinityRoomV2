@@ -13,7 +13,7 @@ Automated trading bots often rely on rigid, hardcoded mathematical rules (e.g., 
 - **Backend:** Python 3.12+, FastAPI, Uvicorn, CCXT (for exchange data).
 - **Frontend:** React 19, Vite, TailwindCSS, Lightweight Charts.
 - **AI / Inference:** Groq, Google Gemini, OpenAI, DeepSeek (via direct API or TogetherAI).
-- **Databases & State:** Upstash Redis (for fast, ephemeral state and Pub/Sub), MongoDB (for long-term storage).
+- **Databases & State:** Upstash Redis (for fast, ephemeral state, pub/sub, and persistent logging).
 - **Infrastructure:** Render (Backend API + Embedded Workers), Netlify (Frontend).
 
 ## 🏗️ Architecture
@@ -25,12 +25,22 @@ The system is designed with a unified architecture to keep infrastructure costs 
 3. **Data Layer (Upstash Redis):** Used as the central nervous system. Workers write real-time signals, consensus data, and status updates to Redis, which the API then serves to the frontend.
 4. **Frontend Dashboard (React):** A sleek, modern dashboard that connects to both the FastAPI backend (for historical and AI data) and Binance WebSockets (for live price action).
 
-## 🧠 AI Approach
+## 🧠 AI Approach & Trading Logic
 
-The core of Kublai relies on a multi-agent consensus model:
-- **Data Aggregation:** The system fetches live and historical data (CCXT), computes indicators (EMA, MACD, RSI, ATR), and formats it into a prompt.
-- **Analysis:** Different LLMs evaluate the market conditions.
-- **Consensus:** The system aggregates the responses to determine a final action (Long, Short, or Hold) along with a reasoning summary.
+The core of Kublai relies on a **multi-agent consensus model** executing a specific deterministic logic known as the **"PUPU 5m Strategy"**. 
+
+### The Strategy (PUPU 5m)
+- **Data Aggregation:** The system fetches 5-minute historical data via CCXT and computes specific indicators: **EMA 12**, **RSI 14**, **ATR 14**, and **Donchian Channels (400 periods)** to identify true liquidity sweeps.
+- **Execution Logic:** The bot looks for the price to sweep the 400-period Donchian Low (for Longs) or High (for Shorts) and waits for a confirming 5m candle close across the EMA 12 within a specific 20-candle validity window.
+
+### The 4-Agent Consensus Pipeline
+Once the mathematical criteria are near triggering, the data is passed to the AI committee:
+1. **Liquidity Analyst (Llama 3 70B):** Analyzes raw Order Flow and Delta to ensure institutional backing.
+2. **Setup Analyst (Llama 3 70B):** Validates the mathematical setup (Donchian sweep + EMA crossover timeframe).
+3. **Momentum Analyst (Llama 3 8B):** Confirms if the trigger candle has enough decisive momentum.
+4. **Risk Manager (Llama 3 8B):** The final filter. Purely quantitative. Calculates precise Stop Loss based on ATR and enforces a strict 1:1.7 Risk/Reward ratio.
+
+A trade proposal is only generated if all 4 agents reach a positive consensus.
 
 ## 🚀 Current Status
 
@@ -92,7 +102,7 @@ The API will be available at `http://localhost:8000/api` and the frontend at `ht
 
 You need to define the following variables in a `.env` file at the root of the project. See `.env.example` for the complete list.
 - **AI Keys:** `GROQ_API_KEY`, `GOOGLE_API_KEY`, etc.
-- **Databases:** `REDIS_URL`, `MONGO_URI`.
+- **Databases:** `REDIS_URL`
 - **Bot Config:** `ENABLE_WORKERS=true`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
 
 ---
