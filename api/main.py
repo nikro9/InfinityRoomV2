@@ -463,8 +463,11 @@ def _run_altcoin_worker():
                 print(f"[{asset}] Cycle done")
                 time.sleep(10)  # Small delay between assets to avoid rate limiting
 
-            print(f"[ALTS] All assets analyzed. Next cycle in 5 min.")
-            time.sleep(300)
+            print(f"[ALTS] All assets analyzed. Next cycle at the 5-minute mark.")
+            now = datetime.utcnow()
+            minutes_to_next = 5 - (now.minute % 5)
+            seconds_to_wait = (minutes_to_next - 1) * 60 + (60 - now.second)
+            time.sleep(max(30, seconds_to_wait))
 
         except Exception as e:
             print(f"❌ Altcoin Worker error: {e}")

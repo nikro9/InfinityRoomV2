@@ -7,10 +7,26 @@ from groq import Groq
 
 # --- CONFIGURACIÓN DE LA API ---
 load_dotenv()
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
-# Configuración del cliente de Groq
-groq_client = Groq(api_key=GROQ_API_KEY)
+# Cargar multiples llaves desde variables de entorno (GROQ_API_KEY_1, GROQ_API_KEY_2, etc.)
+GROQ_API_KEYS = []
+for i in range(1, 20):
+    key = os.getenv(f'GROQ_API_KEY_{i}')
+    if key and key not in GROQ_API_KEYS:
+        GROQ_API_KEYS.append(key)
+
+# Añadir la llave original por si acaso
+original_key = os.getenv('GROQ_API_KEY')
+if original_key and original_key not in GROQ_API_KEYS:
+    GROQ_API_KEYS.append(original_key)
+
+import random
+
+def get_groq_client():
+    """Devuelve un cliente de Groq instanciado con una API key aleatoria de la lista."""
+    if not GROQ_API_KEYS:
+        raise ValueError("No Groq API keys found in environment variables.")
+    return Groq(api_key=random.choice(GROQ_API_KEYS))
 
 # ==============================================================================
 # --- DEFINICIÓN DE ROLES Y PROMPTS PARA EL CONSEJO DE IAS ---
@@ -104,7 +120,8 @@ Calcula los parámetros y proporciona tu veredicto final.
 def _call_groq(prompt: str, model: str, source_analyst: str):
     """Función unificada para llamar a la API de Groq con un modelo específico."""
     print(f"[!] Consultando a {source_analyst} (usando {model})...")
-    chat_completion = groq_client.chat.completions.create(
+    client = get_groq_client()
+    chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model=model,
         temperature=0.1,
