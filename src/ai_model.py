@@ -20,13 +20,16 @@ original_key = os.getenv('GROQ_API_KEY')
 if original_key and original_key not in GROQ_API_KEYS:
     GROQ_API_KEYS.append(original_key)
 
-import random
+import itertools
+
+# Create an iterator for Round-Robin API key selection
+key_iterator = itertools.cycle(GROQ_API_KEYS) if GROQ_API_KEYS else None
 
 def get_groq_client():
-    """Devuelve un cliente de Groq instanciado con una API key aleatoria de la lista."""
+    """Devuelve un cliente de Groq instanciado con una API key usando Round-Robin."""
     if not GROQ_API_KEYS:
         raise ValueError("No Groq API keys found in environment variables.")
-    return Groq(api_key=random.choice(GROQ_API_KEYS))
+    return Groq(api_key=next(key_iterator))
 
 # ==============================================================================
 # --- DEFINICIÓN DE ROLES Y PROMPTS PARA EL CONSEJO DE IAS ---
@@ -149,8 +152,9 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
 
     full_analysis = {}
     
+    # Modelos distribuidos para evitar quemar el límite TPM del modelo 70b
     try:
-        full_analysis['liquidity'] = _call_groq(f"{LIQUIDITY_ANALYST_PROMPT}\n\n{order_flow_str}", "llama-3.3-70b-versatile", "Analista de Liquidez")
+        full_analysis['liquidity'] = _call_groq(f"{LIQUIDITY_ANALYST_PROMPT}\n\n{order_flow_str}", "llama3-8b-8192", "Analista de Liquidez")
     except Exception as e:
         full_analysis['liquidity'] = {"sentiment": "NEUTRAL", "reasoning": f"Error: {e}"}
 
@@ -160,7 +164,7 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
         full_analysis['entry_setup'] = {"signal": "IDLE", "reasoning": f"Error: {e}"}
 
     try:
-        full_analysis['momentum'] = _call_groq(f"{MOMENTUM_ANALYST_PROMPT}\n\n{data_string_simple}", "llama-3.3-70b-versatile", "Analista de Momentum")
+        full_analysis['momentum'] = _call_groq(f"{MOMENTUM_ANALYST_PROMPT}\n\n{data_string_simple}", "gemma2-9b-it", "Analista de Momentum")
     except Exception as e:
         full_analysis['momentum'] = {"confirmation": "REJECTED", "reasoning": f"Error: {e}"}
 
@@ -182,7 +186,7 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
 
     if proposal_to_risk_manager:
         try:
-            risk_decision = _call_groq(f"{RISK_MANAGER_PROMPT}\n\nPropuesta: {json.dumps(proposal_to_risk_manager)}\n\nConsenso de Analistas: {json.dumps(full_analysis)}", "llama-3.3-70b-versatile", "Gestor de Riesgo")
+            risk_decision = _call_groq(f"{RISK_MANAGER_PROMPT}\n\nPropuesta: {json.dumps(proposal_to_risk_manager)}\n\nConsenso de Analistas: {json.dumps(full_analysis)}", "llama3-8b-8192", "Gestor de Riesgo")
             if risk_decision.get("decision") == "APPROVE":
                 print("[OK] Trade APROBADO por el Gestor de Riesgo!")
                 return risk_decision.get("trade_proposal"), risk_decision.get("reasoning"), full_analysis
