@@ -421,7 +421,13 @@ def _run_altcoin_worker():
                 r.lpush(f"{redis_prefix}:log", log_entry)
                 r.ltrim(f"{redis_prefix}:log", 0, 99)
 
-                chat_entry = f"**{asset} {timestamp_utc}:**\n{reasoning}"
+                chat_entry = f"**Analisis {asset} {timestamp_utc}:**\n\n"
+                for analyst, analysis in full_analysis.items():
+                    chat_entry += f"**{analyst}:** {json.dumps(analysis)}\n"
+                if proposal:
+                    chat_entry += f"\n**DECISION:** Trade APROBADO. {reasoning}"
+                else:
+                    chat_entry += f"\n**DECISION:** {reasoning}"
                 r.lpush(f"{redis_prefix}:chat_log", chat_entry)
                 r.ltrim(f"{redis_prefix}:chat_log", 0, 49)
 
