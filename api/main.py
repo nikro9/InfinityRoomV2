@@ -320,8 +320,17 @@ def _run_btc_worker():
 
                         # Chat log
                         chat_entry = f"**Analisis BTC {timestamp_utc}:**\n\n"
+                        
+                        analyst_names = {
+                            'liquidity': 'Analista de Liquidez',
+                            'entry_setup': 'Analista de Setups',
+                            'momentum': 'Analista de Momentum'
+                        }
+                        
                         for analyst, analysis in full_analysis.items():
-                            chat_entry += f"**{analyst}:** {json.dumps(analysis)}\n"
+                            name = analyst_names.get(analyst, f"Analista {analyst}")
+                            chat_entry += f"**{name}:** {json.dumps(analysis)}\n"
+                            
                         if proposal:
                             chat_entry += f"\n**DECISION:** Trade APROBADO. {reasoning}"
                         else:
@@ -422,8 +431,17 @@ def _run_altcoin_worker():
                 r.ltrim(f"{redis_prefix}:log", 0, 99)
 
                 chat_entry = f"**Analisis {asset} {timestamp_utc}:**\n\n"
+                
+                analyst_names = {
+                    'liquidity': 'Analista de Liquidez',
+                    'entry_setup': 'Analista de Setups',
+                    'momentum': 'Analista de Momentum'
+                }
+                
                 for analyst, analysis in full_analysis.items():
-                    chat_entry += f"**{analyst}:** {json.dumps(analysis)}\n"
+                    name = analyst_names.get(analyst, f"Analista {analyst}")
+                    chat_entry += f"**{name}:** {json.dumps(analysis)}\n"
+                    
                 if proposal:
                     chat_entry += f"\n**DECISION:** Trade APROBADO. {reasoning}"
                 else:
