@@ -53,36 +53,42 @@ Analiza los datos de Order Flow y devuelve tu veredicto.
 
 # --- ROL 2: ANALISTA TÉCNICO 1 (EXPERTO EN ENTRADAS - Llama3 70b) ---
 ENTRY_ANALYST_PROMPT = """
-Actúa como "Analista de Setups". Eres un experto en la estrategia "PUPU 5m - ZCoinTV Style". Tu única misión es identificar setups de entrada de alta probabilidad.
+Actúa como "Analista de Setups". Eres un experto en la estrategia "PUPU 5m - ZCoinTV Style". Tu única misión es identificar setups de entrada de REVERSIÓN de tendencia de alta probabilidad. NO buscas seguir la tendencia, buscas el giro.
 
-**TU ESTRATEGIA (PUPU 5m):**
--   **Setup LONG (Toma de Liquidez Inferior):** El precio (`low`) debe haber tocado o caído por debajo del `donchian_low` (que representa el mínimo de 400 periodos) en alguna de las últimas 20 velas. Luego, debes esperar a que la vela actual o reciente cierre POR ENCIMA de la `ema_12`.
--   **Setup SHORT (Toma de Liquidez Superior):** El precio (`high`) debe haber tocado o superado el `donchian_high` (que representa el máximo de 400 periodos) en alguna de las últimas 20 velas. Luego, debes esperar a que la vela actual o reciente cierre POR DEBAJO de la `ema_12`.
+**TU ESTRATEGIA (PUPU 5m) - REGLAS ESTRICTAS:**
+-   **Setup LONG (Reversión Alcista):**
+    1. El precio debe haber tocado o caído por debajo del `donchian_low` (que representa el mínimo de 400 periodos) en las últimas 20-30 velas.
+    2. **CRÍTICO:** Debe existir una **divergencia alcista** clara entre el Precio y el RSI (el precio hizo un mínimo más bajo o igual, pero el RSI hizo un mínimo más alto).
+    3. La señal de entrada se activa SÓLO cuando la vela actual o reciente **rompe y cierra POR ENCIMA de la `ema_12`**.
+-   **Setup SHORT (Reversión Bajista):**
+    1. El precio debe haber tocado o superado el `donchian_high` (que representa el máximo de 400 periodos) en las últimas 20-30 velas.
+    2. **CRÍTICO:** Debe existir una **divergencia bajista** clara entre el Precio y el RSI (el precio hizo un máximo más alto o igual, pero el RSI hizo un máximo más bajo).
+    3. La señal de entrada se activa SÓLO cuando la vela actual o reciente **rompe y cierra POR DEBAJO de la `ema_12`**.
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
 {
   "signal": "POTENTIAL_LONG" | "POTENTIAL_SHORT" | "IDLE",
-  "reasoning": "Tu análisis conciso del setup técnico indicando si hubo barrido de liquidez y cierre de EMA.",
+  "reasoning": "Explica concisamente: 1. Toque de Donchian. 2. Divergencia Precio/RSI detectada. 3. Ruptura de la EMA.",
   "trigger_price": null | float
 }
 ```
-Si identificas un setup, devuelve la señal potencial y el precio actual de la `ema_12` como `trigger_price` (para usarse como límite). Si no hay setup válido, devuelve "IDLE".
+Si se cumplen los 3 parámetros, devuelve la señal potencial y el precio actual de la `ema_12` como `trigger_price`. Si falta ALGUN parámetro (especialmente la divergencia o el cierre de EMA), devuelve "IDLE".
 """
 
 # --- ROL 3: ANALISTA TÉCNICO 2 (CONFIRMADOR DE MOMENTUM - Gemma) ---
 MOMENTUM_ANALYST_PROMPT = """
-Actúa como "Analista de Confirmación". Eres un especialista en momentum. Tu única tarea es confirmar si la vela actual tiene la fuerza necesaria para validar un setup.
+Actúa como "Analista de Confirmación". Eres un especialista en momentum para reversiones. Tu tarea es confirmar si la vela que rompe la EMA tiene fuerza genuina.
 
 **TU ANÁLISIS:**
--   **Confirmación LONG:** La vela actual debe cerrar **decididamente por encima** de la `ema_12`.
--   **Confirmación SHORT:** La vela actual debe cerrar **decididamente por debajo** de la `ema_12`.
+-   **Confirmación LONG:** La vela que rompe la `ema_12` hacia arriba debe tener un cuerpo sólido (cierre cerca de máximos) demostrando absorción de la liquidez bajista.
+-   **Confirmación SHORT:** La vela que rompe la `ema_12` hacia abajo debe tener un cuerpo sólido (cierre cerca de mínimos) demostrando absorción de la liquidez alcista.
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
 {
   "confirmation": "CONFIRMED" | "REJECTED",
-  "reasoning": "Tu análisis conciso sobre el momentum de la vela actual."
+  "reasoning": "Tu análisis conciso sobre el momentum de la vela actual y su cuerpo/mechas."
 }
 ```
 Analiza la última vela en relación a la EMA y devuelve tu confirmación.
@@ -90,25 +96,25 @@ Analiza la última vela en relación a la EMA y devuelve tu confirmación.
 
 # --- ROL 4: GESTOR DE RIESGO (Llama3) ---
 RISK_MANAGER_PROMPT = """
-Actúa como "Gestor de Riesgo". Eres el filtro final y tu palabra es ley. Eres puramente cuantitativo y basado en reglas.
+Actúa como "Gestor de Riesgo". Eres el filtro final y puramente cuantitativo.
 
 **TU ANÁLISIS:**
-1.  **Recibes una propuesta de trade final y el consenso de los analistas.**
+1.  **Recibes una propuesta de trade y el consenso.**
 2.  **Calcula los Parámetros:** Usa el ATR proporcionado en la propuesta para el Stop Loss.
-3.  **Verifica el Ratio:** Asegúrate de que el ratio riesgo/beneficio sea 1:1.7.
-4.  **Toma la Decisión Final:** Responde **únicamente** con un objeto JSON.
+3.  **Verifica el Ratio:** Asegúrate de que el ratio riesgo/beneficio sea mínimo 1:1.7 (Ideal 1:2 o 1:3 para estos setups).
+4.  **Decisión Final:** Responde **únicamente** con un objeto JSON.
 
 **FÓRMULAS DE CÁLCULO:**
--   **Para un LONG:** `stop_loss` = `pivot_touch_price` - `atr_value`. `risk` = `entry_price` - `stop_loss`. `take_profit` = `entry_price` + (`risk` * 1.7).
--   **Para un SHORT:** `stop_loss` = `pivot_touch_price` + `atr_value`. `risk` = `stop_loss` - `entry_price`. `take_profit` = `entry_price` - (`risk` * 1.7).
+-   **LONG:** `stop_loss` = `pivot_touch_price` - `atr_value`. `risk` = `entry_price` - `stop_loss`. `take_profit` = `entry_price` + (`risk` * 2).
+-   **SHORT:** `stop_loss` = `pivot_touch_price` + `atr_value`. `risk` = `stop_loss` - `entry_price`. `take_profit` = `entry_price` - (`risk` * 2).
 
-**IMPORTANTE:** En tu respuesta JSON, los valores de precio deben ser NÚMEROS FLOTANTES FINALES (ej: `64047.08`), NUNCA fórmulas ni expresiones matemáticas. Debes resolver el cálculo mentalmente antes de escribir el JSON.
+**IMPORTANTE:** En tu respuesta JSON, los valores deben ser NÚMEROS FLOTANTES FINALES (ej: `64047.08`), NUNCA fórmulas.
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
 {
   "decision": "APPROVE" | "REJECT",
-  "reasoning": "Tu justificación final (ej. 'Parámetros correctos, riesgo aceptado').",
+  "reasoning": "Justificación de tu cálculo de riesgo.",
   "trade_proposal": null | { "type": "BUY" | "SELL", "entry_price": float, "stop_loss": float, "take_profit": float }
 }
 ```
@@ -125,7 +131,8 @@ def _call_groq(prompt: str, model: str, source_analyst: str):
         messages=[{"role": "user", "content": prompt}],
         model=model,
         temperature=0.1,
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
+        timeout=15.0
     )
     response_text = chat_completion.choices[0].message.content
     print(f"[OK] Respuesta recibida de {source_analyst}.")

@@ -12,7 +12,10 @@ def get_historical_data(symbol='BTC/USDT', timeframe='5m', days=3):
     Obtiene datos históricos (OHLCV) de Binance usando ccxt,
     manejando la paginación automáticamente.
     """
-    exchange = ccxt.binanceus()
+    exchange = ccxt.binanceus({
+        'enableRateLimit': True,
+        'timeout': 10000,
+    })
     since = exchange.parse8601(str(datetime.utcnow() - timedelta(days=days)))
     all_ohlcv = []
     limit = 1000
