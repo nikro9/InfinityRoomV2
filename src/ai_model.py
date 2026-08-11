@@ -72,7 +72,7 @@ Actúa como "Analista de Confirmación". Eres un especialista en momentum. Tu ú
 Analiza la última vela en relación a la EMA y devuelve tu confirmación.
 """
 
-# --- ROL 4: GESTOR DE RIESGO (Llama3 8b) ---
+# --- ROL 4: GESTOR DE RIESGO (Llama3) ---
 RISK_MANAGER_PROMPT = """
 Actúa como "Gestor de Riesgo". Eres el filtro final y tu palabra es ley. Eres puramente cuantitativo y basado en reglas.
 
@@ -85,6 +85,8 @@ Actúa como "Gestor de Riesgo". Eres el filtro final y tu palabra es ley. Eres p
 **FÓRMULAS DE CÁLCULO:**
 -   **Para un LONG:** `stop_loss` = `pivot_touch_price` - `atr_value`. `risk` = `entry_price` - `stop_loss`. `take_profit` = `entry_price` + (`risk` * 1.7).
 -   **Para un SHORT:** `stop_loss` = `pivot_touch_price` + `atr_value`. `risk` = `stop_loss` - `entry_price`. `take_profit` = `entry_price` - (`risk` * 1.7).
+
+**IMPORTANTE:** En tu respuesta JSON, los valores de precio deben ser NÚMEROS FLOTANTES FINALES (ej: `64047.08`), NUNCA fórmulas ni expresiones matemáticas. Debes resolver el cálculo mentalmente antes de escribir el JSON.
 
 **FORMATO DE RESPUESTA OBLIGATORIO (solo JSON):**
 ```json
@@ -134,7 +136,7 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
         full_analysis['entry_setup'] = {"signal": "IDLE", "reasoning": f"Error: {e}"}
 
     try:
-        full_analysis['momentum'] = _call_groq(f"{MOMENTUM_ANALYST_PROMPT}\n\n{data_string_simple}", "llama-3.1-8b-instant", "Analista de Momentum")
+        full_analysis['momentum'] = _call_groq(f"{MOMENTUM_ANALYST_PROMPT}\n\n{data_string_simple}", "llama-3.3-70b-versatile", "Analista de Momentum")
     except Exception as e:
         full_analysis['momentum'] = {"confirmation": "REJECTED", "reasoning": f"Error: {e}"}
 
@@ -156,7 +158,7 @@ def get_infinity_room_decision(df: pd.DataFrame, order_flow: dict):
 
     if proposal_to_risk_manager:
         try:
-            risk_decision = _call_groq(f"{RISK_MANAGER_PROMPT}\n\nPropuesta: {json.dumps(proposal_to_risk_manager)}\n\nConsenso de Analistas: {json.dumps(full_analysis)}", "llama-3.1-8b-instant", "Gestor de Riesgo")
+            risk_decision = _call_groq(f"{RISK_MANAGER_PROMPT}\n\nPropuesta: {json.dumps(proposal_to_risk_manager)}\n\nConsenso de Analistas: {json.dumps(full_analysis)}", "llama-3.3-70b-versatile", "Gestor de Riesgo")
             if risk_decision.get("decision") == "APPROVE":
                 print("[OK] Trade APROBADO por el Gestor de Riesgo!")
                 return risk_decision.get("trade_proposal"), risk_decision.get("reasoning"), full_analysis
